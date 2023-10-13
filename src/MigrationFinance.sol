@@ -33,9 +33,19 @@ import {FlashLoanReceiverBase} from "@aave-v3-core/contracts/flashloan/base/Flas
  * @dev Implements Aave V3 Pool and Flashloan receiver
  */
 contract MigrationFinance {
-    FlashLoanReceiverBase s_flashLoanReceiverBase;
+    FlashLoanReceiverBase private s_flashLoanReceiverBase;
 
     constructor(address _poolAddressProvider) {
         s_flashLoanReceiverBase = FlashLoanReceiverBase(_poolAddressProvider);
+    }
+
+    function getFlashLoan(
+        address[] calldata _assets,
+        uint256[] calldata _amounts,
+        uint256[] calldata _premiums,
+        address _initiator,
+        bytes calldata _params
+    ) external returns (bool) {
+        return s_flashLoanReceiverBase.executeOperation(_assets, _amounts, _premiums, _initiator, _params);
     }
 }
