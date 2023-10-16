@@ -12,6 +12,7 @@ contract HelperConfig is Script {
         uint256 deployerKey;
         address poolProxy;
         address usdt;
+        address usdc;
         address variableDebtTokenUsdt;
     }
 
@@ -34,6 +35,7 @@ contract HelperConfig is Script {
             deployerKey: vm.envUint("PRIVATE_KEY"),
             poolProxy: 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951,
             usdt: 0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0,
+            usdc: 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8,
             variableDebtTokenUsdt: 0x9844386d29EEd970B9F6a2B9a676083b0478210e
         });
     }

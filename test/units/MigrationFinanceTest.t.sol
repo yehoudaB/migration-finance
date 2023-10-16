@@ -23,6 +23,7 @@ contract MigrationFinanceTest is Test {
     uint256 deployerKey;
     address poolProxy;
     address usdt;
+    address usdc;
     address variableDebtTokenUsdt;
     address[] assetsToBorrow;
     uint256[] amountsToBorrow;
@@ -33,7 +34,8 @@ contract MigrationFinanceTest is Test {
         DeployMigrationFinance migrationFinanceDeployer = new DeployMigrationFinance();
         console.log("Deploying MigrationFinance");
         (migrationFinance, helperConfig) = migrationFinanceDeployer.run();
-        (poolAddressProvider, deployerKey, poolProxy, usdt, variableDebtTokenUsdt) = helperConfig.activeNetworkConfig();
+        (poolAddressProvider, deployerKey, poolProxy, usdt, usdc, variableDebtTokenUsdt) =
+            helperConfig.activeNetworkConfig();
         console.log("MigrationFinance deployed at ", address(migrationFinance));
         vm.deal(USER, STARTING_USER_BALANCE);
     }
@@ -41,12 +43,16 @@ contract MigrationFinanceTest is Test {
     function testRequestFlashLoan() public {
         console.log("testGetFlashLoan");
         assetsToBorrow.push(usdt);
+        assetsToBorrow.push(usdc);
         amountsToBorrow.push(100e6);
+        amountsToBorrow.push(200e6);
         interestRateModes.push(0); // no open debt. (amount+fee must be paid in this case or revert)
-
+        interestRateModes.push(0); // no open debt. (amount+fee must be paid in this case or revert)
         vm.startBroadcast(USER);
         IERC20(usdt).transfer(address(migrationFinance), 1e6);
-        console.log("balance of migrationFinance", IERC20(usdt).balanceOf(address(migrationFinance)));
+        IERC20(usdc).transfer(address(migrationFinance), 2e6);
+        console.log("usdt balance of migrationFinance", IERC20(usdt).balanceOf(address(migrationFinance)));
+        console.log("usdc balance of migrationFinance", IERC20(usdc).balanceOf(address(migrationFinance)));
         uint16 referralCode = 0;
 
         migrationFinance.requestFlashLoan(

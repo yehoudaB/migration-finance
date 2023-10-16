@@ -8,7 +8,7 @@ pragma solidity ^0.8.20;
 contract DeployMigrationFinance is Script {
     function run() external returns (MigrationFinance, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
-        (address poolAddressProvider, uint256 deployerKey,,,) = helperConfig.activeNetworkConfig();
+        (address poolAddressProvider, uint256 deployerKey,,,,) = helperConfig.activeNetworkConfig();
         console.log("deployerKey", deployerKey);
         vm.startBroadcast(deployerKey);
         MigrationFinance migrationFinance = new MigrationFinance(poolAddressProvider);
