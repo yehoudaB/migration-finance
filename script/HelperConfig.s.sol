@@ -3,18 +3,21 @@
 pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
-
+import {IPoolAddressesProvider} from "@aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
+import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataProvider.sol";
 //import {MockPool} from "@aave-v3-core/contracts/mocks/helpers/MockPool.sol";
 
 contract HelperConfig is Script {
     struct NetworkConfig {
-        address poolAddressProvider;
+        address poolAddressProvider; //
         uint256 deployerKey;
         address poolProxy;
         address usdt;
         address usdc;
         address variableDebtTokenUsdt;
     }
+    //  address[] getAllReservesTokens;
+    //     address[] getAllATokens;
 
     // MockPool public pool;
 
@@ -30,8 +33,10 @@ contract HelperConfig is Script {
     }
 
     function getSepoliaEthConfig() public view returns (NetworkConfig memory) {
+        address poolAddressProvider = 0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A;
+
         return NetworkConfig({
-            poolAddressProvider: 0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A,
+            poolAddressProvider: poolAddressProvider,
             deployerKey: vm.envUint("PRIVATE_KEY"),
             poolProxy: 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951,
             usdt: 0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0,

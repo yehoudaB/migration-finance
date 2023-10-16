@@ -1,5 +1,12 @@
 # Migration Finance
 
+### Configuration
+for interaction contract run
+```
+  forge install ChainAccelOrg/foundry-devops --no-commit
+```
+
+
 ### Deploy contract locally from a fork url 
 
 run : 

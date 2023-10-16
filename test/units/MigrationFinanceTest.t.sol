@@ -8,6 +8,10 @@ import {DeployMigrationFinance} from "script/DeployMigrationFinance.s.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IPoolAddressesProvider} from "@aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
+import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataProvider.sol";
+import {IPool} from "@aave-v3-core/contracts/interfaces/IPool.sol";
+import {IUiPoolDataProviderV3} from "@aave-v3-periphery/contracts/misc/interfaces/IUiPoolDataProviderV3.sol";
 
 contract MigrationFinanceTest is Test {
     /**
@@ -38,6 +42,29 @@ contract MigrationFinanceTest is Test {
             helperConfig.activeNetworkConfig();
         console.log("MigrationFinance deployed at ", address(migrationFinance));
         vm.deal(USER, STARTING_USER_BALANCE);
+    }
+
+    function testGetAddressesList() public {
+        IPoolAddressesProvider iPoolAddressProvider = IPoolAddressesProvider(poolAddressProvider);
+        IPool pool = IPool(iPoolAddressProvider.getPool());
+        IPoolDataProvider poolDataProviderInstance = IPoolDataProvider(address(pool));
+
+        console.log("poolAddressProvider", address(poolAddressProvider));
+        console.log("pool", address(pool));
+        console.log("poolDataProviderInstance", address(poolDataProviderInstance));
+        IUiPoolDataProviderV3 uiPoolDataProvider = IUiPoolDataProviderV3(address(poolDataProviderInstance));
+        console.log("uiPoolDataProvider", address(uiPoolDataProvider));
+
+        address[] memory allReservesTokens = pool.getReservesList();
+
+        (AggregatedReserveData[] data, BaseCurrencyInfo data2) =
+            uiPoolDataProvider.getReservesData(iPoolAddressProvider);
+
+        IPoolDataProvider.TokenData[] memory allATokens = poolDataProviderInstance.getAllReservesTokens();
+
+        for (uint256 i = 0; i < allATokens.length; i++) {
+            console.log("allATokens", allATokens[i].symbol, allATokens[i].tokenAddress);
+        }
     }
 
     function testRequestFlashLoan() public {
