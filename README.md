@@ -16,7 +16,7 @@ make deploy
 But for testing you need to do this : 
 
 ```
- forge test --fork-url $(SEPOLIA_RPC_URL) -vvv 
+ forge test --fork-url $SEPOLIA_RPC_URL -vvvv 
 ```
 equivalent to : 
 ```

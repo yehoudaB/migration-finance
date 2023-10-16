@@ -7,6 +7,7 @@ import {MigrationFinance} from "src/MigrationFinance.sol";
 import {DeployMigrationFinance} from "script/DeployMigrationFinance.s.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MigrationFinanceTest is Test {
     /**
@@ -17,15 +18,16 @@ contract MigrationFinanceTest is Test {
     uint256 public constant STARTING_USER_BALANCE = 10 ether;
     MigrationFinance public migrationFinance;
     HelperConfig helperConfig;
-    address[] assetsToBorrow;
-    uint256[] amountsToBorrow;
-    uint256[] premiums; // find what this is
-    bytes params; // find what this is
+
     address poolAddressProvider;
     uint256 deployerKey;
     address poolProxy;
     address usdt;
     address variableDebtTokenUsdt;
+    address[] assetsToBorrow;
+    uint256[] amountsToBorrow;
+    uint256[] interestRateModes;
+    bytes params = ""; //Arbitrary bytes-encoded params that will be passed to executeOperation() method of the receiver contract.
 
     function setUp() public {
         DeployMigrationFinance migrationFinanceDeployer = new DeployMigrationFinance();
@@ -36,17 +38,26 @@ contract MigrationFinanceTest is Test {
         vm.deal(USER, STARTING_USER_BALANCE);
     }
 
-    function testGetFlashLoan() public {
+    function testRequestFlashLoan() public {
         console.log("testGetFlashLoan");
-        vm.startBroadcast();
-
         assetsToBorrow.push(usdt);
-        amountsToBorrow.push(10000);
-        premiums.push(0);
-        params = "0x";
+        amountsToBorrow.push(100e6);
+        interestRateModes.push(0); // no open debt. (amount+fee must be paid in this case or revert)
 
-        bool success = migrationFinance.getFlashLoan(assetsToBorrow, amountsToBorrow, premiums, USER, params);
+        vm.startBroadcast(USER);
+        IERC20(usdt).transfer(address(migrationFinance), 1e6);
+        console.log("balance of migrationFinance", IERC20(usdt).balanceOf(address(migrationFinance)));
+        uint16 referralCode = 0;
+
+        migrationFinance.requestFlashLoan(
+            address(migrationFinance),
+            assetsToBorrow,
+            amountsToBorrow,
+            interestRateModes,
+            address(migrationFinance),
+            params,
+            referralCode
+        );
         vm.stopBroadcast();
-        assertTrue(success, "getFlashLoan failed");
     }
 }
