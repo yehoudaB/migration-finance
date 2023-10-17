@@ -23,44 +23,26 @@ contract MigrationFinanceTest is Test {
     MigrationFinance public migrationFinance;
     HelperConfig helperConfig;
 
-    address poolAddressProvider;
+    IPoolAddressesProvider iPoolAddressProvider;
+    IPoolDataProvider iPoolDataProvider;
+    IPool iPool;
     uint256 deployerKey;
-    address poolProxy;
-    address usdt;
-    address usdc;
-    address variableDebtTokenUsdt;
     address[] assetsToBorrow;
     uint256[] amountsToBorrow;
     uint256[] interestRateModes;
+    address usdt = 0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0;
+    address usdc = 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8;
     bytes params = ""; //Arbitrary bytes-encoded params that will be passed to executeOperation() method of the receiver contract.
 
     function setUp() public {
         DeployMigrationFinance migrationFinanceDeployer = new DeployMigrationFinance();
-        console.log("Deploying MigrationFinance");
         (migrationFinance, helperConfig) = migrationFinanceDeployer.run();
-        (poolAddressProvider, deployerKey, poolProxy, usdt, usdc, variableDebtTokenUsdt) =
-            helperConfig.activeNetworkConfig();
+        (iPoolAddressProvider, iPoolDataProvider, iPool, deployerKey) = helperConfig.activeNetworkConfig();
         console.log("MigrationFinance deployed at ", address(migrationFinance));
         vm.deal(USER, STARTING_USER_BALANCE);
     }
 
-    function testGetAddressesList() public {
-        IPoolAddressesProvider iPoolAddressProvider = IPoolAddressesProvider(poolAddressProvider);
-        IPool pool = IPool(iPoolAddressProvider.getPool());
-        IPoolDataProvider poolDataProviderInstance = IPoolDataProvider(iPoolAddressProvider.getPoolDataProvider());
-
-        console.log("poolAddressProvider", address(poolAddressProvider));
-        console.log("pool", address(pool));
-        console.log("poolDataProviderInstance", address(poolDataProviderInstance));
-
-        address[] memory allReservesTokens = pool.getReservesList();
-
-        IPoolDataProvider.TokenData[] memory data = poolDataProviderInstance.getAllATokens();
-        console.log("data", data.length);
-        for (uint256 i = 0; i < data.length; i++) {
-            console.log("data", i, data[i].symbol);
-        }
-    }
+    function testGetAddressesList() public {}
 
     function testRequestFlashLoan() public {
         console.log("testGetFlashLoan");
