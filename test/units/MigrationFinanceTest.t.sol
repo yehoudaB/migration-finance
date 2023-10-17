@@ -47,23 +47,18 @@ contract MigrationFinanceTest is Test {
     function testGetAddressesList() public {
         IPoolAddressesProvider iPoolAddressProvider = IPoolAddressesProvider(poolAddressProvider);
         IPool pool = IPool(iPoolAddressProvider.getPool());
-        IPoolDataProvider poolDataProviderInstance = IPoolDataProvider(address(pool));
+        IPoolDataProvider poolDataProviderInstance = IPoolDataProvider(iPoolAddressProvider.getPoolDataProvider());
 
         console.log("poolAddressProvider", address(poolAddressProvider));
         console.log("pool", address(pool));
         console.log("poolDataProviderInstance", address(poolDataProviderInstance));
-        IUiPoolDataProviderV3 uiPoolDataProvider = IUiPoolDataProviderV3(address(poolDataProviderInstance));
-        console.log("uiPoolDataProvider", address(uiPoolDataProvider));
 
         address[] memory allReservesTokens = pool.getReservesList();
 
-        (AggregatedReserveData[] data, BaseCurrencyInfo data2) =
-            uiPoolDataProvider.getReservesData(iPoolAddressProvider);
-
-        IPoolDataProvider.TokenData[] memory allATokens = poolDataProviderInstance.getAllReservesTokens();
-
-        for (uint256 i = 0; i < allATokens.length; i++) {
-            console.log("allATokens", allATokens[i].symbol, allATokens[i].tokenAddress);
+        IPoolDataProvider.TokenData[] memory data = poolDataProviderInstance.getAllATokens();
+        console.log("data", data.length);
+        for (uint256 i = 0; i < data.length; i++) {
+            console.log("data", i, data[i].symbol);
         }
     }
 
