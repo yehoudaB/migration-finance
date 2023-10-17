@@ -8,6 +8,7 @@ import {DeployMigrationFinance} from "script/DeployMigrationFinance.s.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
 import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataProvider.sol";
 import {IPool} from "@aave-v3-core/contracts/interfaces/IPool.sol";
@@ -42,7 +43,36 @@ contract MigrationFinanceTest is Test {
         vm.deal(USER, STARTING_USER_BALANCE);
     }
 
-    function testGetAddressesList() public {}
+    function testGetAaveReserveTokenList() public view {
+        address[] memory aaveReserveTokenList = helperConfig.getAaveMarketReserveTokenList();
+        for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
+            console.log("aaveReserveTokenList", aaveReserveTokenList[i]);
+        }
+        assert(aaveReserveTokenList.length > 0);
+    }
+
+    function testGetAaveUserDataOnAllAsset() public view {
+        address[] memory aaveReserveTokenList = helperConfig.getAaveMarketReserveTokenList();
+
+        for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
+            address reserveToken = aaveReserveTokenList[i];
+            HelperConfig.AaveUserDataOnOneAsset memory aaveUserDataOnOneAsset =
+                helperConfig.getAavePositionOfUserByAsset(reserveToken, USER);
+            console.log("------------------- ", ERC20(reserveToken).symbol(), " -------------------");
+            console.log("aaveUserDataOnOneAsset.currentATokenBalance", aaveUserDataOnOneAsset.currentATokenBalance);
+            console.log("aaveUserDataOnOneAsset.currentStableDebt", aaveUserDataOnOneAsset.currentStableDebt);
+            console.log("aaveUserDataOnOneAsset.currentVariableDebt", aaveUserDataOnOneAsset.currentVariableDebt);
+            console.log("aaveUserDataOnOneAsset.principalStableDebt", aaveUserDataOnOneAsset.principalStableDebt);
+            console.log("aaveUserDataOnOneAsset.scaledVariableDebt", aaveUserDataOnOneAsset.scaledVariableDebt);
+            console.log("aaveUserDataOnOneAsset.stableBorrowRate", aaveUserDataOnOneAsset.stableBorrowRate);
+            console.log("aaveUserDataOnOneAsset.liquidityRate", aaveUserDataOnOneAsset.liquidityRate);
+            console.log("aaveUserDataOnOneAsset.stableRateLastUpdated", aaveUserDataOnOneAsset.stableRateLastUpdated);
+            console.log(
+                "aaveUserDataOnOneAsset.usageAsCollateralEnabled", aaveUserDataOnOneAsset.usageAsCollateralEnabled
+            );
+            console.log("______________________________________________________________");
+        }
+    }
 
     function testRequestFlashLoan() public {
         console.log("testGetFlashLoan");
