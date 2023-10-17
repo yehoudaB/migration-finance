@@ -51,14 +51,14 @@ contract MigrationFinanceTest is Test {
         assert(aaveReserveTokenList.length > 0);
     }
 
-    function testGetAaveUserDataOnAllAsset() public view {
+    function testGetAaveUserDataForAllAsset() public view {
         address[] memory aaveReserveTokenList = helperConfig.getAaveMarketReserveTokenList();
 
         for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
             address reserveToken = aaveReserveTokenList[i];
             HelperConfig.AaveUserDataOnOneAsset memory aaveUserDataOnOneAsset =
                 helperConfig.getAavePositionOfUserByAsset(reserveToken, USER);
-            console.log("------------------- ", ERC20(reserveToken).symbol(), " -------------------");
+            console.log("------------------- ", ERC20(reserveToken).symbol(), " -------------------"); // remove all console.log before prod
             console.log("aaveUserDataOnOneAsset.currentATokenBalance", aaveUserDataOnOneAsset.currentATokenBalance);
             console.log("aaveUserDataOnOneAsset.currentStableDebt", aaveUserDataOnOneAsset.currentStableDebt);
             console.log("aaveUserDataOnOneAsset.currentVariableDebt", aaveUserDataOnOneAsset.currentVariableDebt);
