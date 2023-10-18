@@ -86,7 +86,11 @@ contract HelperConfig is Script {
         });
     }
 
-    function getAaveUserDataForAllAsset(address _user) public view returns (MigrationFinance.AaveUserDataList memory) {
+    function getAaveUserDataForAllAssets(address _user)
+        public
+        view
+        returns (MigrationFinance.AaveUserDataList memory)
+    {
         address[] memory aaveReserveTokenList = getAaveMarketReserveTokenList();
         address[] memory aaveUserATokenAddressList = new address[](aaveReserveTokenList.length);
         uint256[] memory aaveUserATokenAmountList = new uint256[](aaveReserveTokenList.length);

@@ -75,7 +75,7 @@ contract MigrationFinanceTest is Test {
     }
 
     function testGetAaveAllUserPositions() public {
-        MigrationFinance.AaveUserDataList memory aaveUserDataList = helperConfig.getAaveUserDataForAllAsset(USER);
+        MigrationFinance.AaveUserDataList memory aaveUserDataList = helperConfig.getAaveUserDataForAllAssets(USER);
 
         for (uint256 i = 0; i < aaveUserDataList.aaveUserATokenAddressList.length; i++) {
             console.log(
