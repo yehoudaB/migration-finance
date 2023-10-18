@@ -6,6 +6,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
 import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataProvider.sol";
 import {IPool} from "@aave-v3-core/contracts/interfaces/IPool.sol";
+import {MigrationFinance} from "src/MigrationFinance.sol";
 
 contract HelperConfig is Script {
     struct NetworkConfig {
@@ -26,10 +27,6 @@ contract HelperConfig is Script {
         uint40 stableRateLastUpdated;
         bool usageAsCollateralEnabled;
     }
-    //  address[] getAllReservesTokens;
-    //     address[] getAllATokens;
-
-    // MockPool public pool;
 
     uint256 public constant DEFAULT_ANVIL_PRIVATE_KEY =
         0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
@@ -86,6 +83,50 @@ contract HelperConfig is Script {
             liquidityRate: liquidityRate,
             stableRateLastUpdated: stableRateLastUpdated,
             usageAsCollateralEnabled: usageAsCollateralEnabled
+        });
+    }
+
+    function getAaveUserDataForAllAsset(address _user) public view returns (MigrationFinance.AaveUserDataList memory) {
+        address[] memory aaveReserveTokenList = getAaveMarketReserveTokenList();
+        address[] memory aaveUserATokenAddressList = new address[](aaveReserveTokenList.length);
+        uint256[] memory aaveUserATokenAmountList = new uint256[](aaveReserveTokenList.length);
+        bool[] memory aaveUserATokenIsCollateralList = new bool[](aaveReserveTokenList.length);
+        address[] memory aaveUserCurrentStableDebtTokenAddressList = new address[](aaveReserveTokenList.length);
+        uint256[] memory aaveUserCurrentStableDebtTokenAmountList = new uint256[](aaveReserveTokenList.length);
+        address[] memory aaveUserCurrentVariableDebtTokenAddressList = new address[](aaveReserveTokenList.length);
+        uint256[] memory aaveUserCurrentVariableDebtTokenAmountList = new uint256[](aaveReserveTokenList.length);
+
+        for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
+            AaveUserDataOnOneAsset memory aaveUserDataOnOneAsset =
+                getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user);
+            if (aaveUserDataOnOneAsset.currentATokenBalance > 0) {
+                aaveUserATokenAddressList[i] = aaveReserveTokenList[i];
+                aaveUserATokenAmountList[i] =
+                    getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user).currentATokenBalance;
+
+                aaveUserATokenIsCollateralList[i] =
+                    getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user).usageAsCollateralEnabled;
+            }
+            if (aaveUserDataOnOneAsset.currentStableDebt > 0) {
+                aaveUserCurrentStableDebtTokenAddressList[i] = aaveReserveTokenList[i];
+                aaveUserCurrentStableDebtTokenAmountList[i] =
+                    getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user).currentStableDebt;
+            }
+            if (aaveUserDataOnOneAsset.currentVariableDebt > 0) {
+                aaveUserCurrentVariableDebtTokenAddressList[i] = aaveReserveTokenList[i];
+                aaveUserCurrentVariableDebtTokenAmountList[i] =
+                    getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user).currentVariableDebt;
+            }
+        }
+        return MigrationFinance.AaveUserDataList({
+            aaveReserveTokenList: aaveReserveTokenList,
+            aaveUserATokenAddressList: aaveUserATokenAddressList,
+            aaveUserATokenAmountList: aaveUserATokenAmountList,
+            aaveUserATokenIsCollateralList: aaveUserATokenIsCollateralList,
+            aaveUserCurrentStableDebtTokenAddressList: aaveUserCurrentStableDebtTokenAddressList,
+            aaveUserCurrentStableDebtTokenAmountList: aaveUserCurrentStableDebtTokenAmountList,
+            aaveUserCurrentVariableDebtTokenAddressList: aaveUserCurrentVariableDebtTokenAddressList,
+            aaveUserCurrentVariableDebtTokenAmountList: aaveUserCurrentVariableDebtTokenAmountList
         });
     }
 }

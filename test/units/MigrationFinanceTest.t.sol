@@ -74,6 +74,40 @@ contract MigrationFinanceTest is Test {
         }
     }
 
+    function testGetAaveAllUserPositions() public {
+        MigrationFinance.AaveUserDataList memory aaveUserDataList = helperConfig.getAaveUserDataForAllAsset(USER);
+
+        for (uint256 i = 0; i < aaveUserDataList.aaveUserATokenAddressList.length; i++) {
+            console.log(
+                "------------------- ", ERC20(aaveUserDataList.aaveReserveTokenList[i]).symbol(), " -------------------"
+            );
+            // remove all console.log before prod
+            console.log("aaveUserDataList.aaveUserATokenAddressList", aaveUserDataList.aaveUserATokenAddressList[i]);
+            console.log("aaveUserDataList.aaveUserATokenAmountList", aaveUserDataList.aaveUserATokenAmountList[i]);
+            console.log(
+                "aaveUserDataList.aaveUserATokenIsCollateralList", aaveUserDataList.aaveUserATokenIsCollateralList[i]
+            );
+            console.log(
+                "aaveUserDataList.aaveUserCurrentStableDebtTokenAddressList",
+                aaveUserDataList.aaveUserCurrentStableDebtTokenAddressList[i]
+            );
+            console.log(
+                "aaveUserDataList.aaveUserCurrentStableDebtTokenAmountList",
+                aaveUserDataList.aaveUserCurrentStableDebtTokenAmountList[i]
+            );
+            console.log(
+                "aaveUserDataList.aaveUserCurrentVariableDebtTokenAddressList",
+                aaveUserDataList.aaveUserCurrentVariableDebtTokenAddressList[i]
+            );
+            console.log(
+                "aaveUserDataList.aaveUserCurrentVariableDebtTokenAmountList",
+                aaveUserDataList.aaveUserCurrentVariableDebtTokenAmountList[i]
+            );
+            console.log("______________________________________________________________");
+        }
+        assert(aaveUserDataList.aaveUserATokenAddressList.length > 0);
+    }
+
     function testRequestFlashLoan() public {
         console.log("testGetFlashLoan");
         assetsToBorrow.push(usdt);
