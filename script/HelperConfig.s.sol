@@ -92,45 +92,31 @@ contract HelperConfig is Script {
         returns (MigrationFinance.AaveUserDataList memory)
     {
         address[] memory aaveReserveTokenList = getAaveMarketReserveTokenList();
-        address[] memory aaveUserATokenAddressList = new address[](aaveReserveTokenList.length);
-        uint256[] memory aaveUserATokenAmountList = new uint256[](aaveReserveTokenList.length);
-        bool[] memory aaveUserATokenIsCollateralList = new bool[](aaveReserveTokenList.length);
-        address[] memory aaveUserCurrentStableDebtTokenAddressList = new address[](aaveReserveTokenList.length);
-        uint256[] memory aaveUserCurrentStableDebtTokenAmountList = new uint256[](aaveReserveTokenList.length);
-        address[] memory aaveUserCurrentVariableDebtTokenAddressList = new address[](aaveReserveTokenList.length);
-        uint256[] memory aaveUserCurrentVariableDebtTokenAmountList = new uint256[](aaveReserveTokenList.length);
+        uint256[] memory tokensAmountsThatUserDepositedInAave = new uint256[](aaveReserveTokenList.length);
+        bool[] memory areTokensCollateralThatUserDepositedInAave = new bool[](aaveReserveTokenList.length);
+        uint256[] memory tokensAmountThatUserStableBorrowedFromAave = new uint256[](aaveReserveTokenList.length);
+        uint256[] memory tokensAmountsThatUserVariableBorrowedFromAave = new uint256[](aaveReserveTokenList.length);
 
         for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
             AaveUserDataOnOneAsset memory aaveUserDataOnOneAsset =
                 getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user);
             if (aaveUserDataOnOneAsset.currentATokenBalance > 0) {
-                aaveUserATokenAddressList[i] = aaveReserveTokenList[i];
-                aaveUserATokenAmountList[i] =
-                    getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user).currentATokenBalance;
-
-                aaveUserATokenIsCollateralList[i] =
-                    getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user).usageAsCollateralEnabled;
+                tokensAmountsThatUserDepositedInAave[i] = aaveUserDataOnOneAsset.currentATokenBalance;
+                areTokensCollateralThatUserDepositedInAave[i] = aaveUserDataOnOneAsset.usageAsCollateralEnabled;
             }
             if (aaveUserDataOnOneAsset.currentStableDebt > 0) {
-                aaveUserCurrentStableDebtTokenAddressList[i] = aaveReserveTokenList[i];
-                aaveUserCurrentStableDebtTokenAmountList[i] =
-                    getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user).currentStableDebt;
+                tokensAmountThatUserStableBorrowedFromAave[i] = aaveUserDataOnOneAsset.currentStableDebt;
             }
             if (aaveUserDataOnOneAsset.currentVariableDebt > 0) {
-                aaveUserCurrentVariableDebtTokenAddressList[i] = aaveReserveTokenList[i];
-                aaveUserCurrentVariableDebtTokenAmountList[i] =
-                    getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user).currentVariableDebt;
+                tokensAmountsThatUserVariableBorrowedFromAave[i] = aaveUserDataOnOneAsset.currentVariableDebt;
             }
         }
         return MigrationFinance.AaveUserDataList({
             aaveReserveTokenList: aaveReserveTokenList,
-            aaveUserATokenAddressList: aaveUserATokenAddressList,
-            aaveUserATokenAmountList: aaveUserATokenAmountList,
-            aaveUserATokenIsCollateralList: aaveUserATokenIsCollateralList,
-            aaveUserCurrentStableDebtTokenAddressList: aaveUserCurrentStableDebtTokenAddressList,
-            aaveUserCurrentStableDebtTokenAmountList: aaveUserCurrentStableDebtTokenAmountList,
-            aaveUserCurrentVariableDebtTokenAddressList: aaveUserCurrentVariableDebtTokenAddressList,
-            aaveUserCurrentVariableDebtTokenAmountList: aaveUserCurrentVariableDebtTokenAmountList
+            tokensAmountsThatUserDepositedInAave: tokensAmountsThatUserDepositedInAave,
+            areTokensCollateralThatUserDepositedInAave: areTokensCollateralThatUserDepositedInAave,
+            tokensAmountThatUserStableBorrowedFromAave: tokensAmountThatUserStableBorrowedFromAave,
+            tokensAmountsThatUserVariableBorrowedFromAave: tokensAmountsThatUserVariableBorrowedFromAave
         });
     }
 }

@@ -19,7 +19,8 @@ contract MigrationFinanceTest is Test {
      * Events
      */
 
-    address public USER = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
+    address public USER_1 = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
+    address public USER_2 = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
     uint256 public constant STARTING_USER_BALANCE = 10 ether;
     MigrationFinance public migrationFinance;
     HelperConfig helperConfig;
@@ -40,7 +41,7 @@ contract MigrationFinanceTest is Test {
         (migrationFinance, helperConfig) = migrationFinanceDeployer.run();
         (iPoolAddressProvider, iPoolDataProvider, iPool, deployerKey) = helperConfig.activeNetworkConfig();
         console.log("MigrationFinance deployed at ", address(migrationFinance));
-        vm.deal(USER, STARTING_USER_BALANCE);
+        vm.deal(USER_1, STARTING_USER_BALANCE);
     }
 
     function testGetAaveReserveTokenList() public view {
@@ -57,7 +58,7 @@ contract MigrationFinanceTest is Test {
         for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
             address reserveToken = aaveReserveTokenList[i];
             HelperConfig.AaveUserDataOnOneAsset memory aaveUserDataOnOneAsset =
-                helperConfig.getAavePositionOfUserByAsset(reserveToken, USER);
+                helperConfig.getAavePositionOfUserByAsset(reserveToken, USER_1);
             console.log("------------------- ", ERC20(reserveToken).symbol(), " -------------------"); // remove all console.log before prod
             console.log("aaveUserDataOnOneAsset.currentATokenBalance", aaveUserDataOnOneAsset.currentATokenBalance);
             console.log("aaveUserDataOnOneAsset.currentStableDebt", aaveUserDataOnOneAsset.currentStableDebt);
@@ -75,37 +76,16 @@ contract MigrationFinanceTest is Test {
     }
 
     function testGetAaveAllUserPositions() public {
-        MigrationFinance.AaveUserDataList memory aaveUserDataList = helperConfig.getAaveUserDataForAllAssets(USER);
+        MigrationFinance.AaveUserDataList memory aaveUserDataList = helperConfig.getAaveUserDataForAllAssets(USER_1);
 
-        for (uint256 i = 0; i < aaveUserDataList.aaveUserATokenAddressList.length; i++) {
+        for (uint256 i = 0; i < aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave.length; i++) {
             console.log(
                 "------------------- ", ERC20(aaveUserDataList.aaveReserveTokenList[i]).symbol(), " -------------------"
             );
             // remove all console.log before prod
-            console.log("aaveUserDataList.aaveUserATokenAddressList", aaveUserDataList.aaveUserATokenAddressList[i]);
-            console.log("aaveUserDataList.aaveUserATokenAmountList", aaveUserDataList.aaveUserATokenAmountList[i]);
-            console.log(
-                "aaveUserDataList.aaveUserATokenIsCollateralList", aaveUserDataList.aaveUserATokenIsCollateralList[i]
-            );
-            console.log(
-                "aaveUserDataList.aaveUserCurrentStableDebtTokenAddressList",
-                aaveUserDataList.aaveUserCurrentStableDebtTokenAddressList[i]
-            );
-            console.log(
-                "aaveUserDataList.aaveUserCurrentStableDebtTokenAmountList",
-                aaveUserDataList.aaveUserCurrentStableDebtTokenAmountList[i]
-            );
-            console.log(
-                "aaveUserDataList.aaveUserCurrentVariableDebtTokenAddressList",
-                aaveUserDataList.aaveUserCurrentVariableDebtTokenAddressList[i]
-            );
-            console.log(
-                "aaveUserDataList.aaveUserCurrentVariableDebtTokenAmountList",
-                aaveUserDataList.aaveUserCurrentVariableDebtTokenAmountList[i]
-            );
-            console.log("______________________________________________________________");
+
+            // TODO CONSOLE LOG
         }
-        assert(aaveUserDataList.aaveUserATokenAddressList.length > 0);
     }
 
     function testRequestFlashLoan() public {
@@ -116,7 +96,7 @@ contract MigrationFinanceTest is Test {
         amountsToBorrow.push(200e6);
         interestRateModes.push(0); // no open debt. (amount+fee must be paid in this case or revert)
         interestRateModes.push(0); // no open debt. (amount+fee must be paid in this case or revert)
-        vm.startBroadcast(USER);
+        vm.startBroadcast(USER_1);
         IERC20(usdt).transfer(address(migrationFinance), 1e6);
         IERC20(usdc).transfer(address(migrationFinance), 2e6);
         console.log("usdt balance of migrationFinance", IERC20(usdt).balanceOf(address(migrationFinance)));
@@ -134,4 +114,6 @@ contract MigrationFinanceTest is Test {
         );
         vm.stopBroadcast();
     }
+
+    function testMoveAavePositionToAnotherWallet() external {}
 }

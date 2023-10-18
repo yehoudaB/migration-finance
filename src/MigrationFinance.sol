@@ -59,13 +59,10 @@ contract MigrationFinance is FlashLoanReceiverBase {
 
     struct AaveUserDataList {
         address[] aaveReserveTokenList;
-        address[] aaveUserATokenAddressList;
-        uint256[] aaveUserATokenAmountList;
-        bool[] aaveUserATokenIsCollateralList;
-        address[] aaveUserCurrentStableDebtTokenAddressList;
-        uint256[] aaveUserCurrentStableDebtTokenAmountList;
-        address[] aaveUserCurrentVariableDebtTokenAddressList;
-        uint256[] aaveUserCurrentVariableDebtTokenAmountList;
+        uint256[] tokensAmountsThatUserDepositedInAave;
+        bool[] areTokensCollateralThatUserDepositedInAave;
+        uint256[] tokensAmountThatUserStableBorrowedFromAave;
+        uint256[] tokensAmountsThatUserVariableBorrowedFromAave;
     }
 
     constructor(address _poolAddressProvider) FlashLoanReceiverBase(IPoolAddressesProvider(_poolAddressProvider)) {
@@ -74,13 +71,13 @@ contract MigrationFinance is FlashLoanReceiverBase {
 
     function requestFlashLoan(
         address _receiverAddress,
-        address[] calldata _assets,
-        uint256[] calldata _amounts,
-        uint256[] calldata _interestRateModes,
+        address[] memory _assets,
+        uint256[] memory _amounts,
+        uint256[] memory _interestRateModes,
         address _onBehalfOf,
-        bytes calldata _params,
+        bytes memory _params,
         uint16 _referralCode
-    ) external {
+    ) public {
         POOL.flashLoan(_receiverAddress, _assets, _amounts, _interestRateModes, _onBehalfOf, _params, _referralCode);
     }
 
@@ -96,25 +93,40 @@ contract MigrationFinance is FlashLoanReceiverBase {
         address _initiator,
         bytes calldata _params
     ) external returns (bool) {
+        // do whatever you want with the flash loaned amount
+        //_repayAaveDebts(assetsToBorrowFromFL, amountsToBorrowFromFL);
+        // return the funds to the pool
         for (uint256 i = 0; i < _assets.length; i++) {
             IERC20(_assets[i]).approve(address(POOL), _amounts[i] + _premiums[i]);
         }
         return true;
     }
+
     /**
      * @notice this function aims to migrate the Aave position from one wallet to another
      * @dev before excuting this function, the _to address should have allowed the _form address to borrow on behalf of it
+     * @param _aaveUserDataList the data of the Aave position to migrate : for gas efficiency you need to feed this variable with only the data of the Aave position you want to migrate
      */
+    function moveAavePositionToAnotherWallet(address _from, address _to, AaveUserDataList calldata _aaveUserDataList)
+        external
+    {
+        address[] memory assetsToBorrowFromFL = new address[](_aaveUserDataList.aaveReserveTokenList.length);
+        uint256[] memory amountsToBorrowFromFL = new uint256[](_aaveUserDataList.aaveReserveTokenList.length);
 
-    function moveAavePositionToAnotherWallet(
-        address _form,
-        address _to,
-        address[] memory aaveReserveTokenList,
-        uint256[] memory aaveUserATokenAmountList,
-        bool[] memory aaveUserATokenIsCollateralList,
-        address[] memory aaveUserCurrentStableDebtTokenAddressList,
-        uint256[] memory aaveUserCurrentStableDebtTokenAmountList,
-        address[] memory aaveUserCurrentVariableDebtTokenAddressList,
-        uint256[] memory aaveUserCurrentVariableDebtTokenAmountList
-    ) external {}
+        uint256[] memory interestRateModes = new uint256[](_aaveUserDataList.aaveReserveTokenList.length);
+        for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
+            if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
+                assetsToBorrowFromFL[i] = _aaveUserDataList.aaveReserveTokenList[i];
+                amountsToBorrowFromFL[i] = _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i];
+                interestRateModes[i] = 0;
+            }
+        }
+        requestFlashLoan(_from, assetsToBorrowFromFL, amountsToBorrowFromFL, interestRateModes, _from, bytes(""), 0);
+    }
+
+    function _repayAaveDebts(address[] memory _assetsToRepayToPool, uint256[] memory _amountsToRepayToPool) private {
+        for (uint256 i = 0; i < _assetsToRepayToPool.length; i++) {
+            IERC20(_assetsToRepayToPool[i]).approve(address(POOL), _amountsToRepayToPool[i]);
+        }
+    }
 }
