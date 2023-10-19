@@ -97,7 +97,7 @@ contract MigrationFinance is FlashLoanReceiverBase {
         //_repayAaveDebts(assetsToBorrowFromFL, amountsToBorrowFromFL);
         // return the funds to the pool
         for (uint256 i = 0; i < _assets.length; i++) {
-            IERC20(_assets[i]).approve(address(POOL), _amounts[i] + _premiums[i]);
+            IERC20(_assets[i]).approve(address(POOL), _amounts[i] + _premiums[i]); // if contract is the borrower
         }
         return true;
     }
@@ -105,22 +105,20 @@ contract MigrationFinance is FlashLoanReceiverBase {
     /**
      * @notice this function aims to migrate the Aave position from one wallet to another
      * @dev before excuting this function, the _to address should have allowed the _form address to borrow on behalf of it
-     * @param _aaveUserDataList the data of the Aave position to migrate : for gas efficiency you need to feed this variable with only the data of the Aave position you want to migrate
+     * @param _from the address of the wallet that has the Aave position
+     * @param _to the address of the wallet that will receive the Aave position
+     * @param assetsToBorrowFromFL the list of addresses of assets to borrow from the flashloan (to repay the Aave debts position)
+     * @param amountsToBorrowFromFL the list of amounts to borrow from the flashloan (to repay the Aave debts position)
+     * @param interestRateModes the types of debt position to open if the flashloan is not returned. for us is 0: (no open debt) (amount+fee must be paid in this case or revert)
+     *
      */
-    function moveAavePositionToAnotherWallet(address _from, address _to, AaveUserDataList calldata _aaveUserDataList)
-        external
-    {
-        address[] memory assetsToBorrowFromFL = new address[](_aaveUserDataList.aaveReserveTokenList.length);
-        uint256[] memory amountsToBorrowFromFL = new uint256[](_aaveUserDataList.aaveReserveTokenList.length);
-
-        uint256[] memory interestRateModes = new uint256[](_aaveUserDataList.aaveReserveTokenList.length);
-        for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
-            if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
-                assetsToBorrowFromFL[i] = _aaveUserDataList.aaveReserveTokenList[i];
-                amountsToBorrowFromFL[i] = _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i];
-                interestRateModes[i] = 0;
-            }
-        }
+    function moveAavePositionToAnotherWallet(
+        address _from,
+        address _to,
+        address[] memory assetsToBorrowFromFL,
+        uint256[] memory amountsToBorrowFromFL,
+        uint256[] memory interestRateModes
+    ) external {
         requestFlashLoan(_from, assetsToBorrowFromFL, amountsToBorrowFromFL, interestRateModes, _from, bytes(""), 0);
     }
 

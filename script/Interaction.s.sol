@@ -17,7 +17,5 @@ contract MigrateAavePositions is Script {
 
     function migrateAavePosition(address _from, address _to) external {
         MigrationFinance.AaveUserDataList memory aaveUserDataList = helperConfig.getAaveUserDataForAllAssets(msg.sender);
-
-        migrationFinance.moveAavePositionToAnotherWallet(_from, _to, aaveUserDataList);
     }
 }

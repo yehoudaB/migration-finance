@@ -119,4 +119,40 @@ contract HelperConfig is Script {
             tokensAmountsThatUserVariableBorrowedFromAave: tokensAmountsThatUserVariableBorrowedFromAave
         });
     }
+
+    /**
+     *  @notice this function prepare the array of asset to borrow from FlashLoan to repay Aave debt for an user
+     *  @param _aaveUserDataList the data of the Aave position to migrate : for gas efficiency you need to feed this variable with
+     *                           only the data of the Aave position you want to migrate
+     */
+    function getAssetsToBorrowFromFLToRepayAaveDebt(MigrationFinance.AaveUserDataList calldata _aaveUserDataList)
+        external
+        view
+        returns (
+            address[] memory assetsToBorrowFromFL,
+            uint256[] memory amountsToBorrowFromFL,
+            uint256[] memory interestRateModes
+        )
+    {
+        uint256 lengthOfassetsToBorrowArray = 0;
+
+        for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
+            if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
+                lengthOfassetsToBorrowArray++;
+            }
+        }
+        assetsToBorrowFromFL = new address[](lengthOfassetsToBorrowArray);
+        amountsToBorrowFromFL = new uint256[](lengthOfassetsToBorrowArray);
+        interestRateModes = new uint256[](lengthOfassetsToBorrowArray);
+        uint256 indexOfAssetToBorrow = 0;
+        for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
+            if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
+                assetsToBorrowFromFL[indexOfAssetToBorrow] = _aaveUserDataList.aaveReserveTokenList[i];
+                amountsToBorrowFromFL[indexOfAssetToBorrow] =
+                    _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i];
+                interestRateModes[indexOfAssetToBorrow] = 0;
+                indexOfAssetToBorrow++;
+            }
+        }
+    }
 }
