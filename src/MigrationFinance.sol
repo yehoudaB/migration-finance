@@ -94,11 +94,15 @@ contract MigrationFinance is FlashLoanReceiverBase {
         bytes calldata _params
     ) external returns (bool) {
         // do whatever you want with the flash loaned amount
-        //_repayAaveDebts(assetsToBorrowFromFL, amountsToBorrowFromFL);
+
+        address onBehalfOf = abi.decode(_params, (address));
         // return the funds to the pool
         for (uint256 i = 0; i < _assets.length; i++) {
+            IERC20(_assets[i]).approve(address(POOL), _amounts[i]);
+            POOL.repay(_assets[i], _amounts[i], 2, onBehalfOf);
             IERC20(_assets[i]).approve(address(POOL), _amounts[i] + _premiums[i]); // if contract is the borrower
         }
+
         return true;
     }
 
@@ -119,12 +123,15 @@ contract MigrationFinance is FlashLoanReceiverBase {
         uint256[] memory amountsToBorrowFromFL,
         uint256[] memory interestRateModes
     ) external {
-        requestFlashLoan(_from, assetsToBorrowFromFL, amountsToBorrowFromFL, interestRateModes, _from, bytes(""), 0);
-    }
-
-    function _repayAaveDebts(address[] memory _assetsToRepayToPool, uint256[] memory _amountsToRepayToPool) private {
-        for (uint256 i = 0; i < _assetsToRepayToPool.length; i++) {
-            IERC20(_assetsToRepayToPool[i]).approve(address(POOL), _amountsToRepayToPool[i]);
-        }
+        bytes memory repayOnBehalfOf = abi.encode(_from);
+        requestFlashLoan(
+            address(this),
+            assetsToBorrowFromFL,
+            amountsToBorrowFromFL,
+            interestRateModes,
+            address(this),
+            repayOnBehalfOf,
+            0
+        );
     }
 }
