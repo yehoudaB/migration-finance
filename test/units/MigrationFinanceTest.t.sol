@@ -139,25 +139,24 @@ contract MigrationFinanceTest is Test {
     }
 
     function testMoveAavePositionToAnotherWallet() external {
-        MigrationFinance.AaveUserDataList memory aaveUserDataList = helperConfig.getAaveUserDataForAllAssets(USER_1);
+        MigrationFinance.AaveUserDataList memory aaveUser1DataList = helperConfig.getAaveUserDataForAllAssets(USER_1);
+
         console.log("------------------- before FLASHLOAN ------------------- ");
-        for (uint256 i = 0; i < aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave.length; i++) {
+        for (uint256 i = 0; i < aaveUser1DataList.tokensAmountsThatUserVariableBorrowedFromAave.length; i++) {
             // remove all console.log before prod
 
             console.log(
-                "-------------------", ERC20(aaveUserDataList.aaveReserveTokenList[i]).symbol(), " -------------------"
+                "-------------------", ERC20(aaveUser1DataList.aaveReserveTokenList[i]).symbol(), " -------------------"
             );
-            console.log(
-                "aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave",
-                aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i]
-            );
+            console.log("user 1 debt", aaveUser1DataList.tokensAmountsThatUserVariableBorrowedFromAave[i]);
         }
         (
             address[] memory assetsToBorrowFromFL,
             uint256[] memory amountsToBorrowFromFL,
             uint256[] memory interestRateModes
-        ) = helperConfig.getAssetsToBorrowFromFLToRepayAaveDebt(aaveUserDataList);
-
+        ) = helperConfig.getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
+        (address[] memory assetsToMove, uint256[] memory amountsToMove) =
+            helperConfig.getATokenAssetToMoveToDestinationWallet(USER_1);
         vm.startBroadcast(USER_1);
 
         // transfer some tokens to migrationFinance
@@ -166,21 +165,23 @@ contract MigrationFinanceTest is Test {
         IERC20(link).transfer(address(migrationFinance), 1e18);
 
         migrationFinance.moveAavePositionToAnotherWallet(
-            USER_1, USER_2, assetsToBorrowFromFL, amountsToBorrowFromFL, interestRateModes
+            USER_1, USER_2, assetsToBorrowFromFL, amountsToBorrowFromFL, interestRateModes, assetsToMove, amountsToMove
         );
         vm.stopBroadcast();
-        aaveUserDataList = helperConfig.getAaveUserDataForAllAssets(USER_1);
+        aaveUser1DataList = helperConfig.getAaveUserDataForAllAssets(USER_1);
+        MigrationFinance.AaveUserDataList memory aaveUser2DataList = helperConfig.getAaveUserDataForAllAssets(USER_1);
+
         console.log("-----------------AFTER FLASHLOAN ------------------");
-        for (uint256 i = 0; i < aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave.length; i++) {
+        for (uint256 i = 0; i < aaveUser1DataList.tokensAmountsThatUserVariableBorrowedFromAave.length; i++) {
             // remove all console.log before prod
 
             console.log(
-                "------------------- ", ERC20(aaveUserDataList.aaveReserveTokenList[i]).symbol(), " -------------------"
+                "------------------- ",
+                ERC20(aaveUser1DataList.aaveReserveTokenList[i]).symbol(),
+                " -------------------"
             );
-            console.log(
-                "aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave",
-                aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i]
-            );
+            console.log("user 1 debt", aaveUser1DataList.tokensAmountsThatUserVariableBorrowedFromAave[i]);
+            console.log("user 2 debt", aaveUser2DataList.tokensAmountsThatUserVariableBorrowedFromAave[i]);
         }
     }
 }

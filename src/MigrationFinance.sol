@@ -95,14 +95,24 @@ contract MigrationFinance is FlashLoanReceiverBase {
     ) external returns (bool) {
         // do whatever you want with the flash loaned amount
 
-        address onBehalfOf = abi.decode(_params, (address));
-        // return the funds to the pool
-        for (uint256 i = 0; i < _assets.length; i++) {
-            IERC20(_assets[i]).approve(address(POOL), _amounts[i]);
-            POOL.repay(_assets[i], _amounts[i], 2, onBehalfOf);
-            IERC20(_assets[i]).approve(address(POOL), _amounts[i] + _premiums[i]); // if contract is the borrower
-        }
+        (address _from, address _to, address[] memory assetsToMove, uint256[] memory amountsToMove) =
+            abi.decode(_params, (address, address, address[], uint256[]));
 
+        // return the funds to the pool
+        for (uint256 i = 0; i < assetsToMove.length; i++) {
+            IERC20(assetsToMove[i]).transferFrom(_from, _to, amountsToMove[i]); // transfer the asset to the new wallet
+            POOL.deposit(assetsToMove[i], amountsToMove[i], _to, 0); // deposit the asset in the new wallet
+        }
+        for (uint256 i = 0; i < _assets.length; i++) {
+            address tokenToBorrow = _assets[i];
+            uint256 amountToBorrow = _amounts[i];
+            IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow); // approve to repay to the POOL (regular debt)
+            POOL.repay(tokenToBorrow, amountToBorrow, 2, _from);
+
+            POOL.borrow(tokenToBorrow, amountToBorrow, 2, 0, _to); // if contract is the borrower
+            IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow + _premiums[i]); // approve to repay to the FLASHLOAN
+        }
+        // possibly merge the two for loops ...
         return true;
     }
 
@@ -121,16 +131,18 @@ contract MigrationFinance is FlashLoanReceiverBase {
         address _to,
         address[] memory assetsToBorrowFromFL,
         uint256[] memory amountsToBorrowFromFL,
-        uint256[] memory interestRateModes
+        uint256[] memory interestRateModes,
+        address[] memory assetsToMove,
+        uint256[] memory amountsToMove
     ) external {
-        bytes memory repayOnBehalfOf = abi.encode(_from);
+        bytes memory fromAndToAddressesEncoded = abi.encode(_from, _to, assetsToMove, amountsToMove);
         requestFlashLoan(
             address(this),
             assetsToBorrowFromFL,
             amountsToBorrowFromFL,
             interestRateModes,
             address(this),
-            repayOnBehalfOf,
+            fromAndToAddressesEncoded,
             0
         );
     }

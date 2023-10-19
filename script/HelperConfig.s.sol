@@ -7,6 +7,7 @@ import {IPoolAddressesProvider} from "@aave-v3-core/contracts/interfaces/IPoolAd
 import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataProvider.sol";
 import {IPool} from "@aave-v3-core/contracts/interfaces/IPool.sol";
 import {MigrationFinance} from "src/MigrationFinance.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract HelperConfig is Script {
     struct NetworkConfig {
@@ -53,8 +54,20 @@ contract HelperConfig is Script {
         return activeNetworkConfig.iPoolDataProvider.getAllATokens();
     }
 
+    function getAaveMarketATokenAddresses() public view returns (address[] memory) {
+        address[] memory aTokenAddresses = new address[](getAaveMarketATokenList().length);
+        IPoolDataProvider.TokenData[] memory aTokenList = getAaveMarketATokenList();
+        for (uint256 i = 0; i < aTokenList.length; i++) {
+            aTokenAddresses[i] = aTokenList[i].tokenAddress;
+        }
+    }
+
     function getAaveMarketReserveTokenList() public view returns (address[] memory) {
         return activeNetworkConfig.iPool.getReservesList();
+    }
+
+    function getAToken() external view returns (address _tokenReserve) {
+        return activeNetworkConfig.iPool.getReserveData(_tokenReserve).aTokenAddress;
     }
 
     function getAavePositionOfUserByAsset(address _asset, address _user)
@@ -152,6 +165,22 @@ contract HelperConfig is Script {
                     _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i];
                 interestRateModes[indexOfAssetToBorrow] = 0;
                 indexOfAssetToBorrow++;
+            }
+        }
+    }
+
+    function getATokenAssetToMoveToDestinationWallet(address _from)
+        external
+        view
+        returns (address[] memory assetsToMove, uint256[] memory amountsToMove)
+    {
+        address[] memory aTokenList = getAaveMarketATokenAddresses();
+
+        for (uint256 i = 0; i < aTokenList.length; i++) {
+            uint256 aTokenBalance = IERC20(aTokenList[i]).balanceOf(_from);
+            if (aTokenBalance > 0) {
+                assetsToMove[i] = aTokenList[i];
+                amountsToMove[i] = aTokenBalance;
             }
         }
     }
