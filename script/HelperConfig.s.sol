@@ -54,20 +54,16 @@ contract HelperConfig is Script {
         return activeNetworkConfig.iPoolDataProvider.getAllATokens();
     }
 
-    function getAaveMarketATokenAddresses() public view returns (address[] memory) {
-        address[] memory aTokenAddresses = new address[](getAaveMarketATokenList().length);
-        IPoolDataProvider.TokenData[] memory aTokenList = getAaveMarketATokenList();
-        for (uint256 i = 0; i < aTokenList.length; i++) {
-            aTokenAddresses[i] = aTokenList[i].tokenAddress;
-        }
-    }
-
     function getAaveMarketReserveTokenList() public view returns (address[] memory) {
         return activeNetworkConfig.iPool.getReservesList();
     }
 
-    function getAToken() external view returns (address _tokenReserve) {
+    function getAToken(address _tokenReserve) public view returns (address) {
         return activeNetworkConfig.iPool.getReserveData(_tokenReserve).aTokenAddress;
+    }
+
+    function getVariableDebtToken(address _tokenReserve) external view returns (address) {
+        return activeNetworkConfig.iPool.getReserveData(_tokenReserve).variableDebtTokenAddress;
     }
 
     function getAavePositionOfUserByAsset(address _asset, address _user)
@@ -140,12 +136,8 @@ contract HelperConfig is Script {
      */
     function getAssetsToBorrowFromFLToRepayAaveDebt(MigrationFinance.AaveUserDataList calldata _aaveUserDataList)
         external
-        view
-        returns (
-            address[] memory assetsToBorrowFromFL,
-            uint256[] memory amountsToBorrowFromFL,
-            uint256[] memory interestRateModes
-        )
+        pure
+        returns (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes)
     {
         uint256 lengthOfassetsToBorrowArray = 0;
 
@@ -154,14 +146,14 @@ contract HelperConfig is Script {
                 lengthOfassetsToBorrowArray++;
             }
         }
-        assetsToBorrowFromFL = new address[](lengthOfassetsToBorrowArray);
-        amountsToBorrowFromFL = new uint256[](lengthOfassetsToBorrowArray);
+        assetsBorrowed = new address[](lengthOfassetsToBorrowArray);
+        amountsBorrowed = new uint256[](lengthOfassetsToBorrowArray);
         interestRateModes = new uint256[](lengthOfassetsToBorrowArray);
         uint256 indexOfAssetToBorrow = 0;
         for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
             if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
-                assetsToBorrowFromFL[indexOfAssetToBorrow] = _aaveUserDataList.aaveReserveTokenList[i];
-                amountsToBorrowFromFL[indexOfAssetToBorrow] =
+                assetsBorrowed[indexOfAssetToBorrow] = _aaveUserDataList.aaveReserveTokenList[i];
+                amountsBorrowed[indexOfAssetToBorrow] =
                     _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i];
                 interestRateModes[indexOfAssetToBorrow] = 0;
                 indexOfAssetToBorrow++;
@@ -172,16 +164,23 @@ contract HelperConfig is Script {
     function getATokenAssetToMoveToDestinationWallet(address _from)
         external
         view
-        returns (address[] memory assetsToMove, uint256[] memory amountsToMove)
+        returns (address[] memory, uint256[] memory)
     {
-        address[] memory aTokenList = getAaveMarketATokenAddresses();
-
-        for (uint256 i = 0; i < aTokenList.length; i++) {
-            uint256 aTokenBalance = IERC20(aTokenList[i]).balanceOf(_from);
-            if (aTokenBalance > 0) {
-                assetsToMove[i] = aTokenList[i];
-                amountsToMove[i] = aTokenBalance;
+        address[] memory reserveTokensList = getAaveMarketReserveTokenList();
+        uint256 lengthOfAssetToMoveArray = 0;
+        for (uint256 i = 0; i < reserveTokensList.length; i++) {
+            address aToken = getAToken(reserveTokensList[i]);
+            if (IERC20(aToken).balanceOf(_from) > 0) {
+                lengthOfAssetToMoveArray++;
             }
         }
+        address[] memory aTokenAssetsToMove = new address[](lengthOfAssetToMoveArray);
+        uint256[] memory aTokenAmountsToMove = new uint256[](lengthOfAssetToMoveArray);
+
+        for (uint256 i = 0; i < lengthOfAssetToMoveArray; i++) {
+            aTokenAssetsToMove[i] = reserveTokensList[i];
+            aTokenAmountsToMove[i] = IERC20(getAToken(reserveTokensList[i])).balanceOf(_from);
+        }
+        return (aTokenAssetsToMove, aTokenAmountsToMove);
     }
 }

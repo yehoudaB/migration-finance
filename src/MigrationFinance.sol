@@ -95,51 +95,53 @@ contract MigrationFinance is FlashLoanReceiverBase {
     ) external returns (bool) {
         // do whatever you want with the flash loaned amount
 
-        (address _from, address _to, address[] memory assetsToMove, uint256[] memory amountsToMove) =
+        (address _from, address _to, address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
             abi.decode(_params, (address, address, address[], uint256[]));
 
-        // return the funds to the pool
-        for (uint256 i = 0; i < assetsToMove.length; i++) {
-            IERC20(assetsToMove[i]).transferFrom(_from, _to, amountsToMove[i]); // transfer the asset to the new wallet
-            POOL.deposit(assetsToMove[i], amountsToMove[i], _to, 0); // deposit the asset in the new wallet
-        }
         for (uint256 i = 0; i < _assets.length; i++) {
             address tokenToBorrow = _assets[i];
             uint256 amountToBorrow = _amounts[i];
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow); // approve to repay to the POOL (regular debt)
             POOL.repay(tokenToBorrow, amountToBorrow, 2, _from);
 
-            POOL.borrow(tokenToBorrow, amountToBorrow, 2, 0, _to); // if contract is the borrower
+            POOL.borrow(tokenToBorrow, amountToBorrow, 2, 0, _to);
+
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow + _premiums[i]); // approve to repay to the FLASHLOAN
+        }
+        for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
+            IERC20(aTokenAssetsToMove[i]).transferFrom(_from, _to, aTokenAmountsToMove[i]);
+
+            // transfer the asset to the new wallet
         }
         // possibly merge the two for loops ...
         return true;
     }
 
+    CHECK WHY ATOKEN WERE NOT TRANSFERRED
     /**
      * @notice this function aims to migrate the Aave position from one wallet to another
      * @dev before excuting this function, the _to address should have allowed the _form address to borrow on behalf of it
      * @param _from the address of the wallet that has the Aave position
      * @param _to the address of the wallet that will receive the Aave position
-     * @param assetsToBorrowFromFL the list of addresses of assets to borrow from the flashloan (to repay the Aave debts position)
-     * @param amountsToBorrowFromFL the list of amounts to borrow from the flashloan (to repay the Aave debts position)
+     * @param assetsBorrowed the list of addresses of assets to borrow from the flashloan (to repay the Aave debts position)
+     * @param amountsBorrowed the list of amounts to borrow from the flashloan (to repay the Aave debts position)
      * @param interestRateModes the types of debt position to open if the flashloan is not returned. for us is 0: (no open debt) (amount+fee must be paid in this case or revert)
      *
      */
     function moveAavePositionToAnotherWallet(
         address _from,
         address _to,
-        address[] memory assetsToBorrowFromFL,
-        uint256[] memory amountsToBorrowFromFL,
+        address[] memory assetsBorrowed,
+        uint256[] memory amountsBorrowed,
         uint256[] memory interestRateModes,
-        address[] memory assetsToMove,
-        uint256[] memory amountsToMove
+        address[] memory aTokenAssetsToMove,
+        uint256[] memory aTokenAmountsToMove
     ) external {
-        bytes memory fromAndToAddressesEncoded = abi.encode(_from, _to, assetsToMove, amountsToMove);
+        bytes memory fromAndToAddressesEncoded = abi.encode(_from, _to, aTokenAssetsToMove, aTokenAmountsToMove);
         requestFlashLoan(
             address(this),
-            assetsToBorrowFromFL,
-            amountsToBorrowFromFL,
+            assetsBorrowed,
+            amountsBorrowed,
             interestRateModes,
             address(this),
             fromAndToAddressesEncoded,
