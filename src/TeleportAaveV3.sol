@@ -1,3 +1,5 @@
+// SPDX-LICENSE-IDENTIFIER: AGPL-3.0
+pragma solidity ^0.8.20;
 // Layout of Contract:
 // version
 // imports
@@ -19,10 +21,6 @@
 // private
 // internal & private view & pure functions
 // external & public view & pure functions
-
-// SPDX-LICENSE-IDENTIFIER: AGPL-3.0
-
-pragma solidity ^0.8.20;
 
 import {FlashLoanReceiverBase} from "@aave-v3-core/contracts/flashloan/base/FlashLoanReceiverBase.sol";
 import {FlashLoanReceiverBase} from "@aave-v3-core/contracts/flashloan/base/FlashLoanReceiverBase.sol";
@@ -74,9 +72,13 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
             address tokenToBorrow = _assets[i];
             uint256 amountToBorrow = _amounts[i];
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow); // approve to repay to the POOL (regular debt)
-            POOL.repay(tokenToBorrow, amountToBorrow, 2, _from);
+            POOL.repay(tokenToBorrow, amountToBorrow, 2, _from); // repay the debt to the POOL for the _from address
 
-            POOL.borrow(tokenToBorrow, amountToBorrow, 2, 0, _to);
+            /* borrow the debt to the POOL for the _to address 
+            * (the _to address should have allowed the contract  to borrow on behalf of it)
+                we borrow the amount + the premium (the premium is for paying the flashloan fee)
+            */
+            POOL.borrow(tokenToBorrow, amountToBorrow + _premiums[i], 2, 0, _to);
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow + _premiums[i]); // approve to repay to the FLASHLOAN
         }
         for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {

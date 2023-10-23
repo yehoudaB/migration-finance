@@ -32,3 +32,11 @@ equivalent to :
 ``````
 
 
+## deployement command example for seploia network
+
+```
+   make deploy ARGS="--network sepolia"
+```
+
+
+

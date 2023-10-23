@@ -39,11 +39,22 @@ contract InteractWithTeleportAaveV3 {
         teleportAaveV3 = _teleportAaveV3;
     }
 
+    /*
+    * @notice this function is used to migrate an Aave position from one wallet to another
+    * @param _from the address of the wallet that has the Aave position
+    * @param _to the address of the wallet that will receive the Aave position
+    * @dev the _to wallet had to approve the TeleportAaveV3 to borrow on its behalf (debtToken approveDelegation method )
+    *  of amount = the total amount of debt of the _from wallet + FL fee 
+    * @dev Also the _from wallet had to approve the TeleportAaveV3 to move the aToken (deposited token) to the _to wallet
+    */
     function teleportAaveV3PositionsBetweenWallets(address _from, address _to) public {
+        InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList = getAaveUserDataForAllAssets(_from);
+        (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes) =
+            getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
+
         (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
             getATokenAssetToMoveToDestinationWallet(_from);
-        (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes) =
-            getAssetsToBorrowFromFLToRepayAaveDebt(getAaveUserDataForAllAssets(_from));
+
         teleportAaveV3.moveAavePositionToAnotherWallet(
             _from, _to, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
         );
