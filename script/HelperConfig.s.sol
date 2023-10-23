@@ -6,8 +6,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
 import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataProvider.sol";
 import {IPool} from "@aave-v3-core/contracts/interfaces/IPool.sol";
-import {MigrationFinance} from "src/MigrationFinance.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {TeleportAaveV3} from "src/TeleportAaveV3.sol";
 
 contract HelperConfig is Script {
     struct NetworkConfig {
@@ -15,18 +14,6 @@ contract HelperConfig is Script {
         IPoolDataProvider iPoolDataProvider;
         IPool iPool;
         uint256 deployerKey;
-    }
-
-    struct AaveUserDataOnOneAsset {
-        uint256 currentATokenBalance;
-        uint256 currentStableDebt;
-        uint256 currentVariableDebt;
-        uint256 principalStableDebt;
-        uint256 scaledVariableDebt;
-        uint256 stableBorrowRate;
-        uint256 liquidityRate;
-        uint40 stableRateLastUpdated;
-        bool usageAsCollateralEnabled;
     }
 
     uint256 public constant DEFAULT_ANVIL_PRIVATE_KEY =
@@ -48,139 +35,5 @@ contract HelperConfig is Script {
             iPool: IPool(iPoolAddressProvider.getPool()),
             deployerKey: vm.envUint("PRIVATE_KEY")
         });
-    }
-
-    function getAaveMarketATokenList() public view returns (IPoolDataProvider.TokenData[] memory) {
-        return activeNetworkConfig.iPoolDataProvider.getAllATokens();
-    }
-
-    function getAaveMarketReserveTokenList() public view returns (address[] memory) {
-        return activeNetworkConfig.iPool.getReservesList();
-    }
-
-    function getAToken(address _tokenReserve) public view returns (address) {
-        return activeNetworkConfig.iPool.getReserveData(_tokenReserve).aTokenAddress;
-    }
-
-    function getVariableDebtToken(address _tokenReserve) external view returns (address) {
-        return activeNetworkConfig.iPool.getReserveData(_tokenReserve).variableDebtTokenAddress;
-    }
-
-    function getAavePositionOfUserByAsset(address _asset, address _user)
-        public
-        view
-        returns (AaveUserDataOnOneAsset memory)
-    {
-        (
-            uint256 currentATokenBalance,
-            uint256 currentStableDebt,
-            uint256 currentVariableDebt,
-            uint256 principalStableDebt,
-            uint256 scaledVariableDebt,
-            uint256 stableBorrowRate,
-            uint256 liquidityRate,
-            uint40 stableRateLastUpdated,
-            bool usageAsCollateralEnabled
-        ) = activeNetworkConfig.iPoolDataProvider.getUserReserveData(_asset, _user);
-        return AaveUserDataOnOneAsset({
-            currentATokenBalance: currentATokenBalance,
-            currentStableDebt: currentStableDebt,
-            currentVariableDebt: currentVariableDebt,
-            principalStableDebt: principalStableDebt,
-            scaledVariableDebt: scaledVariableDebt,
-            stableBorrowRate: stableBorrowRate,
-            liquidityRate: liquidityRate,
-            stableRateLastUpdated: stableRateLastUpdated,
-            usageAsCollateralEnabled: usageAsCollateralEnabled
-        });
-    }
-
-    function getAaveUserDataForAllAssets(address _user)
-        public
-        view
-        returns (MigrationFinance.AaveUserDataList memory)
-    {
-        address[] memory aaveReserveTokenList = getAaveMarketReserveTokenList();
-        uint256[] memory tokensAmountsThatUserDepositedInAave = new uint256[](aaveReserveTokenList.length);
-        bool[] memory areTokensCollateralThatUserDepositedInAave = new bool[](aaveReserveTokenList.length);
-        uint256[] memory tokensAmountThatUserStableBorrowedFromAave = new uint256[](aaveReserveTokenList.length);
-        uint256[] memory tokensAmountsThatUserVariableBorrowedFromAave = new uint256[](aaveReserveTokenList.length);
-
-        for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
-            AaveUserDataOnOneAsset memory aaveUserDataOnOneAsset =
-                getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user);
-            if (aaveUserDataOnOneAsset.currentATokenBalance > 0) {
-                tokensAmountsThatUserDepositedInAave[i] = aaveUserDataOnOneAsset.currentATokenBalance;
-                areTokensCollateralThatUserDepositedInAave[i] = aaveUserDataOnOneAsset.usageAsCollateralEnabled;
-            }
-            if (aaveUserDataOnOneAsset.currentStableDebt > 0) {
-                tokensAmountThatUserStableBorrowedFromAave[i] = aaveUserDataOnOneAsset.currentStableDebt;
-            }
-            if (aaveUserDataOnOneAsset.currentVariableDebt > 0) {
-                tokensAmountsThatUserVariableBorrowedFromAave[i] = aaveUserDataOnOneAsset.currentVariableDebt;
-            }
-        }
-        return MigrationFinance.AaveUserDataList({
-            aaveReserveTokenList: aaveReserveTokenList,
-            tokensAmountsThatUserDepositedInAave: tokensAmountsThatUserDepositedInAave,
-            areTokensCollateralThatUserDepositedInAave: areTokensCollateralThatUserDepositedInAave,
-            tokensAmountThatUserStableBorrowedFromAave: tokensAmountThatUserStableBorrowedFromAave,
-            tokensAmountsThatUserVariableBorrowedFromAave: tokensAmountsThatUserVariableBorrowedFromAave
-        });
-    }
-
-    /**
-     *  @notice this function prepare the array of asset to borrow from FlashLoan to repay Aave debt for an user
-     *  @param _aaveUserDataList the data of the Aave position to migrate : for gas efficiency you need to feed this variable with
-     *                           only the data of the Aave position you want to migrate
-     */
-    function getAssetsToBorrowFromFLToRepayAaveDebt(MigrationFinance.AaveUserDataList calldata _aaveUserDataList)
-        external
-        pure
-        returns (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes)
-    {
-        uint256 lengthOfassetsToBorrowArray = 0;
-
-        for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
-            if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
-                lengthOfassetsToBorrowArray++;
-            }
-        }
-        assetsBorrowed = new address[](lengthOfassetsToBorrowArray);
-        amountsBorrowed = new uint256[](lengthOfassetsToBorrowArray);
-        interestRateModes = new uint256[](lengthOfassetsToBorrowArray);
-        uint256 indexOfAssetToBorrow = 0;
-        for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
-            if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
-                assetsBorrowed[indexOfAssetToBorrow] = _aaveUserDataList.aaveReserveTokenList[i];
-                amountsBorrowed[indexOfAssetToBorrow] =
-                    _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i];
-                interestRateModes[indexOfAssetToBorrow] = 0;
-                indexOfAssetToBorrow++;
-            }
-        }
-    }
-
-    function getATokenAssetToMoveToDestinationWallet(address _from)
-        external
-        view
-        returns (address[] memory, uint256[] memory)
-    {
-        address[] memory reserveTokensList = getAaveMarketReserveTokenList();
-        uint256 lengthOfAssetToMoveArray = 0;
-        for (uint256 i = 0; i < reserveTokensList.length; i++) {
-            address aToken = getAToken(reserveTokensList[i]);
-            if (IERC20(aToken).balanceOf(_from) > 0) {
-                lengthOfAssetToMoveArray++;
-            }
-        }
-        address[] memory aTokenAssetsToMove = new address[](lengthOfAssetToMoveArray);
-        uint256[] memory aTokenAmountsToMove = new uint256[](lengthOfAssetToMoveArray);
-
-        for (uint256 i = 0; i < lengthOfAssetToMoveArray; i++) {
-            aTokenAssetsToMove[i] = reserveTokensList[i];
-            aTokenAmountsToMove[i] = IERC20(getAToken(reserveTokensList[i])).balanceOf(_from);
-        }
-        return (aTokenAssetsToMove, aTokenAmountsToMove);
     }
 }

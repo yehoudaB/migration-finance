@@ -36,34 +36,8 @@ import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataPro
  * @notice this contract hasn't been  audited yet use at your own risk
  * @dev Implements Aave V3 Pool and Flashloan receiver
  */
-contract MigrationFinance is FlashLoanReceiverBase {
+contract TeleportAaveV3 is FlashLoanReceiverBase {
     IPoolDataProvider public poolDataProvider;
-
-    struct AaveUserATokenData {
-        address aTokenAddress;
-        uint256 aTokenAmount;
-        bool isCollateral;
-    }
-
-    struct AaveUserDataOnOneAsset {
-        uint256 currentATokenBalance;
-        uint256 currentStableDebt;
-        uint256 currentVariableDebt;
-        uint256 principalStableDebt;
-        uint256 scaledVariableDebt;
-        uint256 stableBorrowRate;
-        uint256 liquidityRate;
-        uint40 stableRateLastUpdated;
-        bool usageAsCollateralEnabled;
-    }
-
-    struct AaveUserDataList {
-        address[] aaveReserveTokenList;
-        uint256[] tokensAmountsThatUserDepositedInAave;
-        bool[] areTokensCollateralThatUserDepositedInAave;
-        uint256[] tokensAmountThatUserStableBorrowedFromAave;
-        uint256[] tokensAmountsThatUserVariableBorrowedFromAave;
-    }
 
     constructor(address _poolAddressProvider) FlashLoanReceiverBase(IPoolAddressesProvider(_poolAddressProvider)) {
         poolDataProvider = IPoolDataProvider(_poolAddressProvider);
@@ -93,8 +67,6 @@ contract MigrationFinance is FlashLoanReceiverBase {
         address _initiator,
         bytes calldata _params
     ) external returns (bool) {
-        // do whatever you want with the flash loaned amount
-
         (address _from, address _to, address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
             abi.decode(_params, (address, address, address[], uint256[]));
 
@@ -105,19 +77,15 @@ contract MigrationFinance is FlashLoanReceiverBase {
             POOL.repay(tokenToBorrow, amountToBorrow, 2, _from);
 
             POOL.borrow(tokenToBorrow, amountToBorrow, 2, 0, _to);
-
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow + _premiums[i]); // approve to repay to the FLASHLOAN
         }
         for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
             IERC20(aTokenAssetsToMove[i]).transferFrom(_from, _to, aTokenAmountsToMove[i]);
-
-            // transfer the asset to the new wallet
         }
         // possibly merge the two for loops ...
         return true;
     }
 
-    CHECK WHY ATOKEN WERE NOT TRANSFERRED
     /**
      * @notice this function aims to migrate the Aave position from one wallet to another
      * @dev before excuting this function, the _to address should have allowed the _form address to borrow on behalf of it

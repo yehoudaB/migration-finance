@@ -1,22 +1,30 @@
 // SPDX-License-Identifier: MIT
 import {Script, console} from "forge-std/Script.sol";
-import {MigrationFinance} from "src/MigrationFinance.sol";
+import {TeleportAaveV3} from "src/TeleportAaveV3.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
 import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataProvider.sol";
+import {IPool} from "@aave-v3-core/contracts/interfaces/IPool.sol";
+import {InteractWithTeleportAaveV3} from "src/InteractWithTeleportAaveV3.sol";
 
 pragma solidity ^0.8.20;
 
 contract DeployMigrationFinance is Script {
-    function run() external returns (MigrationFinance, HelperConfig) {
+    function run() external returns (TeleportAaveV3, HelperConfig, InteractWithTeleportAaveV3) {
         HelperConfig helperConfig = new HelperConfig();
-        (IPoolAddressesProvider iPoolAddressProvider,,, uint256 deployerKey) = helperConfig.activeNetworkConfig();
-        console.log("iPoolAddressProvider", address(iPoolAddressProvider));
 
-        console.log("deployerKey", deployerKey);
+        (
+            IPoolAddressesProvider iPoolAddressProvider,
+            IPoolDataProvider iPoolDataProvider,
+            IPool iPool,
+            uint256 deployerKey
+        ) = helperConfig.activeNetworkConfig();
+
         vm.startBroadcast(deployerKey);
-        MigrationFinance migrationFinance = new MigrationFinance(address(iPoolAddressProvider));
+        TeleportAaveV3 teleportAaveV3 = new TeleportAaveV3(address(iPoolAddressProvider));
+        InteractWithTeleportAaveV3 interactWithTeleportAaveV3 =
+            new InteractWithTeleportAaveV3(iPoolDataProvider, iPool, teleportAaveV3);
         vm.stopBroadcast();
-        return (migrationFinance, helperConfig);
+        return (teleportAaveV3, helperConfig, interactWithTeleportAaveV3);
     }
 }
