@@ -6,6 +6,7 @@ import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataPro
 import {IPool} from "@aave-v3-core/contracts/interfaces/IPool.sol";
 import {TeleportAaveV3} from "src/TeleportAaveV3.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ICreditDelegationToken} from "@aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol";
 
 contract InteractWithTeleportAaveV3 {
     TeleportAaveV3 teleportAaveV3;
@@ -56,15 +57,73 @@ contract InteractWithTeleportAaveV3 {
             _getATokenAssetToMoveToDestinationWallet(msg.sender);
 
         teleportAaveV3.moveAavePositionToAnotherWallet(
-            msg.sender, _to, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
+            _to, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
         );
     }
 
+    function getAllAaveV3PositionsToMoveViaTeleportAaveV3(address _user)
+        external
+        view
+        returns (
+            address[] memory assetsBorrowed,
+            uint256[] memory amountsBorrowed,
+            uint256[] memory interestRateModes,
+            address[] memory aTokenAssetsToMove,
+            uint256[] memory aTokenAmountsToMove,
+            AaveUserDataList memory aaveUser1DataList
+        )
+    {
+        aaveUser1DataList = _getAaveUserDataForAllAssets(_user);
+        (assetsBorrowed, amountsBorrowed, interestRateModes) =
+            _getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
+
+        (aTokenAssetsToMove, aTokenAmountsToMove) = _getATokenAssetToMoveToDestinationWallet(_user);
+
+        return (
+            assetsBorrowed,
+            amountsBorrowed,
+            interestRateModes,
+            aTokenAssetsToMove,
+            aTokenAmountsToMove,
+            aaveUser1DataList
+        );
+    }
+
+    function giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
+        address[] memory assetsBorrowed,
+        uint256[] memory amountsBorrowed
+    ) external {
+        for (uint256 i = 0; i < assetsBorrowed.length; i++) {
+            address variableDebtToken = _getVariableDebtToken(assetsBorrowed[i]);
+            // amountBorrowed + fee (2%) // approximatively
+            uint256 amountToBorrow = amountsBorrowed[i] + (amountsBorrowed[i] * 2) / 100;
+            ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow * 2);
+        }
+    }
+
+    function giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
+        address[] memory aTokenAssetsToMove,
+        uint256[] memory aTokenAmountsToMove,
+        InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList
+    ) external {
+        for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
+            IERC20(aTokenAssetsToMove[i]).approve(address(teleportAaveV3), aTokenAmountsToMove[i]);
+        }
+        for (uint256 i = 0; i < aaveUser1DataList.aaveReserveTokenList.length; i++) {
+            if (
+                aaveUser1DataList.areTokensCollateralThatUserDepositedInAave[i]
+                    && aaveUser1DataList.tokensAmountsThatUserDepositedInAave[i] > 0
+            ) {
+                iPool.setUserUseReserveAsCollateral(aaveUser1DataList.aaveReserveTokenList[i], true);
+            }
+        }
+    }
     /*
     * @notice this function returns the postion (deposit, borrow) of an user for in the Aave market for all assets
     * @param _user the address of the user 
     * 
     */
+
     function _getAaveUserDataForAllAssets(address _user) private view returns (AaveUserDataList memory) {
         address[] memory aaveReserveTokenList = _getAaveMarketReserveTokenList();
         uint256[] memory tokensAmountsThatUserDepositedInAave = new uint256[](aaveReserveTokenList.length);

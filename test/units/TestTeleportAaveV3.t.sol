@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {Test, console} from "forge-std/Test.sol";
 
 import {TeleportAaveV3} from "src/TeleportAaveV3.sol";
-import {DeployMigrationFinance} from "script/DeployMigrationFinance.s.sol";
+import {DeployTeleportFinance} from "script/DeployTeleportFinance.s.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -38,8 +38,8 @@ contract MigrationFinanceTest is Test {
     address link = 0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5;
 
     function setUp() public {
-        DeployMigrationFinance migrationFinanceDeployer = new DeployMigrationFinance();
-        (teleportAaveV3, helperConfig, interactWithTeleportAaveV3) = migrationFinanceDeployer.run();
+        DeployTeleportFinance teleportFinanceDeployer = new DeployTeleportFinance();
+        (teleportAaveV3, helperConfig, interactWithTeleportAaveV3) = teleportFinanceDeployer.run();
         (iPoolAddressProvider, iPoolDataProvider, iPool, deployerKey) = helperConfig.activeNetworkConfig();
     }
 
@@ -284,5 +284,27 @@ contract MigrationFinanceTest is Test {
         iPool.setUserUseReserveAsCollateral(usdc, true); // usdt is not permitted as collateral
 
         vm.stopBroadcast();
+    }
+
+    function testGetAllAaveV3PositionsToMoveViaTeleportAaveV3() public {
+        (
+            address[] memory assetsBorrowed,
+            uint256[] memory amountsBorrowed,
+            uint256[] memory interestRateModes,
+            address[] memory aTokenAssetsToMove,
+            uint256[] memory aTokenAmountsToMove
+        ) = interactWithTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
+        for (uint256 i = 0; i < assetsBorrowed.length; i++) {
+            console.log("assetsBorrowed", assetsBorrowed[i]);
+            console.log("amountsBorrowed", amountsBorrowed[i]);
+            console.log("interestRateModes", interestRateModes[i]);
+        }
+        for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
+            console.log("aTokenAssetsToMove", aTokenAssetsToMove[i]);
+            console.log("aTokenAmountsToMove", aTokenAmountsToMove[i]);
+        }
+        teleportAaveV3.moveAavePositionToAnotherWallet(
+            USER_1, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
+        );
     }
 }

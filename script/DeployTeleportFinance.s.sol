@@ -9,7 +9,7 @@ import {InteractWithTeleportAaveV3} from "src/InteractWithTeleportAaveV3.sol";
 
 pragma solidity ^0.8.20;
 
-contract DeployMigrationFinance is Script {
+contract DeployTeleportFinance is Script {
     function run() external returns (TeleportAaveV3, HelperConfig, InteractWithTeleportAaveV3) {
         HelperConfig helperConfig = new HelperConfig();
 

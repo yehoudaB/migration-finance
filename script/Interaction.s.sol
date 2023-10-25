@@ -17,6 +17,7 @@ contract Interaction is Script {
     address public USER_1 = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
     address public USER_2 = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
 
+    /*
     function teleport(address teleportAaveV3Address, address interactWithTeleportAaveV3Address, IPool iPool) public {
         uint256 user1PrivateKey = vm.deriveKey(vm.envString("MNEMONIC"), 0);
         uint256 user2PrivateKey = vm.deriveKey(vm.envString("MNEMONIC"), 1);
@@ -54,13 +55,13 @@ contract Interaction is Script {
         }
         interactWithTeleportAaveV3.teleportAaveV3PositionsBetweenWallets(USER_1, USER_2);
         vm.stopBroadcast();
-    }
+    }*/
 
     function run() external {
         HelperConfig helperConfig = new  HelperConfig();
         (,, IPool iPool,) = helperConfig.activeNetworkConfig();
         address teleportAaveV3Address = 0x25E30Eb1AD42e7176B9711A169D1f2d135A88C2B;
         address interactWithTeleportAaveV3Address = 0x5efADa3363f4040A032F4De4c1221ac6c2B73525;
-        teleport(teleportAaveV3Address, interactWithTeleportAaveV3Address, iPool);
+        // teleport(teleportAaveV3Address, interactWithTeleportAaveV3Address, iPool);
     }
 }
