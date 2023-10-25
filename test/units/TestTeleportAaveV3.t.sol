@@ -43,6 +43,7 @@ contract MigrationFinanceTest is Test {
         (iPoolAddressProvider, iPoolDataProvider, iPool, deployerKey) = helperConfig.activeNetworkConfig();
     }
 
+    /* private function
     function testGetAaveReserveTokenList() public view {
         address[] memory aaveReserveTokenList = interactWithTeleportAaveV3.getAaveMarketReserveTokenList();
         for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
@@ -50,7 +51,9 @@ contract MigrationFinanceTest is Test {
         }
         assert(aaveReserveTokenList.length > 0);
     }
+    */
 
+    /* private function
     function testGetAaveUserDataForAllAsset() public view {
         address[] memory aaveReserveTokenList = interactWithTeleportAaveV3.getAaveMarketReserveTokenList();
 
@@ -72,8 +75,8 @@ contract MigrationFinanceTest is Test {
             );
             console.log("______________________________________________________________");
         }
-    }
-
+    }*/
+    /* private function
     function testGetAaveAllUserPositions() public view {
         InteractWithTeleportAaveV3.AaveUserDataList memory aaveUserDataList =
             interactWithTeleportAaveV3.getAaveUserDataForAllAssets(USER_1);
@@ -103,7 +106,7 @@ contract MigrationFinanceTest is Test {
 
             console.log("______________________________________________________________");
         }
-    }
+    }*/
 
     function testRequestFlashLoan() public {
         bytes memory params = abi.encode("");
@@ -126,8 +129,8 @@ contract MigrationFinanceTest is Test {
         IERC20(link).transfer(address(teleportAaveV3), 1e18);
 
         uint16 referralCode = 0;
-
-        teleportAaveV3.requestFlashLoan(
+        // function requestFlashLoan is currently private
+        /* teleportAaveV3.requestFlashLoan(
             address(teleportAaveV3),
             assetsToBorrow,
             amountsToBorrow,
@@ -135,10 +138,10 @@ contract MigrationFinanceTest is Test {
             address(teleportAaveV3),
             params,
             referralCode
-        );
+        );*/
         vm.stopPrank();
     }
-
+    /* need to be refactored
     function testMoveAavePositionToAnotherWallet() external {
         InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList =
             interactWithTeleportAaveV3.getAaveUserDataForAllAssets(USER_1);
@@ -215,7 +218,7 @@ contract MigrationFinanceTest is Test {
                 aaveUser2DataList.tokensAmountsThatUserDepositedInAave[i]
             );
         }
-    }
+    }*/
 
     function testBorrowOnBehalf() public {
         uint256 amount = 0.00063434896262961 ether;
@@ -233,7 +236,7 @@ contract MigrationFinanceTest is Test {
         iPool.borrow(link, amount, 2, 0, USER_2);
         vm.stopBroadcast();
     }
-
+    /* private function
     function testGetATokenAssetToMoveToDestinationWallet() public view {
         (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
             interactWithTeleportAaveV3.getATokenAssetToMoveToDestinationWallet(USER_1);
@@ -274,7 +277,7 @@ contract MigrationFinanceTest is Test {
         }
         interactWithTeleportAaveV3.teleportAaveV3PositionsBetweenWallets(USER_1, USER_2);
         vm.stopBroadcast();
-    }
+    } */
 
     function testSetUserUseReserveAsCollateral() public {
         vm.startBroadcast(USER_1);

@@ -47,16 +47,16 @@ contract InteractWithTeleportAaveV3 {
     *  of amount = the total amount of debt of the _from wallet + FL fee 
     * @dev Also the _from wallet had to approve the TeleportAaveV3 to move the aToken (deposited token) to the _to wallet
     */
-    function teleportAaveV3PositionsBetweenWallets(address _from, address _to) public {
-        InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList = getAaveUserDataForAllAssets(_from);
+    function teleportAaveV3PositionsBetweenWallets(address _to) external {
+        InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList = _getAaveUserDataForAllAssets(msg.sender);
         (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes) =
-            getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
+            _getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
 
         (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
-            getATokenAssetToMoveToDestinationWallet(_from);
+            _getATokenAssetToMoveToDestinationWallet(msg.sender);
 
         teleportAaveV3.moveAavePositionToAnotherWallet(
-            _from, _to, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
+            msg.sender, _to, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
         );
     }
 
@@ -65,8 +65,8 @@ contract InteractWithTeleportAaveV3 {
     * @param _user the address of the user 
     * 
     */
-    function getAaveUserDataForAllAssets(address _user) public view returns (AaveUserDataList memory) {
-        address[] memory aaveReserveTokenList = getAaveMarketReserveTokenList();
+    function _getAaveUserDataForAllAssets(address _user) private view returns (AaveUserDataList memory) {
+        address[] memory aaveReserveTokenList = _getAaveMarketReserveTokenList();
         uint256[] memory tokensAmountsThatUserDepositedInAave = new uint256[](aaveReserveTokenList.length);
         bool[] memory areTokensCollateralThatUserDepositedInAave = new bool[](aaveReserveTokenList.length);
         uint256[] memory tokensAmountThatUserStableBorrowedFromAave = new uint256[](aaveReserveTokenList.length);
@@ -74,7 +74,7 @@ contract InteractWithTeleportAaveV3 {
 
         for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
             AaveUserDataOnOneAsset memory aaveUserDataOnOneAsset =
-                getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user);
+                _getAavePositionOfUserByAsset(aaveReserveTokenList[i], _user);
             if (aaveUserDataOnOneAsset.currentATokenBalance > 0) {
                 tokensAmountsThatUserDepositedInAave[i] = aaveUserDataOnOneAsset.currentATokenBalance;
                 areTokensCollateralThatUserDepositedInAave[i] = aaveUserDataOnOneAsset.usageAsCollateralEnabled;
@@ -101,8 +101,8 @@ contract InteractWithTeleportAaveV3 {
     * @param _user the address of the user
     * @dev this function is used by getAaveUserDataForAllAssets
     */
-    function getAavePositionOfUserByAsset(address _asset, address _user)
-        public
+    function _getAavePositionOfUserByAsset(address _asset, address _user)
+        private
         view
         returns (AaveUserDataOnOneAsset memory)
     {
@@ -135,8 +135,8 @@ contract InteractWithTeleportAaveV3 {
      *  @param _aaveUserDataList the data of the Aave position to migrate : for gas efficiency you need to feed this variable with
      *                           only the data of the Aave position you want to migrate
      */
-    function getAssetsToBorrowFromFLToRepayAaveDebt(AaveUserDataList memory _aaveUserDataList)
-        public
+    function _getAssetsToBorrowFromFLToRepayAaveDebt(AaveUserDataList memory _aaveUserDataList)
+        private
         pure
         returns (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes)
     {
@@ -167,15 +167,15 @@ contract InteractWithTeleportAaveV3 {
     * @param _from the address of the wallet that has the Aave position
     * @dev this function is used by teleportAaveV3PositionsBetweenWallets to prepare the data to send to the TeleportAaveV3 contract
     */
-    function getATokenAssetToMoveToDestinationWallet(address _from)
-        public
+    function _getATokenAssetToMoveToDestinationWallet(address _from)
+        private
         view
         returns (address[] memory, uint256[] memory)
     {
-        address[] memory reserveTokensList = getAaveMarketReserveTokenList();
+        address[] memory reserveTokensList = _getAaveMarketReserveTokenList();
         uint256 lengthOfAssetToMoveArray;
         for (uint256 i = 0; i < reserveTokensList.length; i++) {
-            address aToken = getAToken(reserveTokensList[i]);
+            address aToken = _getAToken(reserveTokensList[i]);
             if (IERC20(aToken).balanceOf(_from) > 0) {
                 lengthOfAssetToMoveArray++;
             }
@@ -184,7 +184,7 @@ contract InteractWithTeleportAaveV3 {
         uint256[] memory aTokenAmountsToMove = new uint256[](lengthOfAssetToMoveArray);
         uint256 indexOfATokenToMove = 0;
         for (uint256 i = 0; i < reserveTokensList.length; i++) {
-            address aToken = getAToken(reserveTokensList[i]);
+            address aToken = _getAToken(reserveTokensList[i]);
 
             if (IERC20(aToken).balanceOf(_from) > 0) {
                 aTokenAssetsToMove[indexOfATokenToMove] = aToken;
@@ -195,12 +195,12 @@ contract InteractWithTeleportAaveV3 {
         return (aTokenAssetsToMove, aTokenAmountsToMove);
     }
 
-    function getATokenAssetToMoveToDestinationWallet2(address _from)
-        public
+    function _getATokenAssetToMoveToDestinationWallet2(address _from)
+        private
         view
         returns (address[] memory, uint256[] memory)
     {
-        IPoolDataProvider.TokenData[] memory aTokenList = getAaveMarketATokenList();
+        IPoolDataProvider.TokenData[] memory aTokenList = _getAaveMarketATokenList();
         uint256 lengthOfAssetToMoveArray;
         for (uint256 i = 0; i < aTokenList.length; i++) {
             address aToken = aTokenList[i].tokenAddress;
@@ -222,19 +222,19 @@ contract InteractWithTeleportAaveV3 {
         return (aTokenAssetsToMove, aTokenAmountsToMove);
     }
 
-    function getAaveMarketATokenList() public view returns (IPoolDataProvider.TokenData[] memory) {
+    function _getAaveMarketATokenList() private view returns (IPoolDataProvider.TokenData[] memory) {
         return iPoolDataProvider.getAllATokens();
     }
 
-    function getAaveMarketReserveTokenList() public view returns (address[] memory) {
+    function _getAaveMarketReserveTokenList() private view returns (address[] memory) {
         return iPool.getReservesList();
     }
 
-    function getAToken(address _tokenReserve) public view returns (address) {
+    function _getAToken(address _tokenReserve) private view returns (address) {
         return iPool.getReserveData(_tokenReserve).aTokenAddress;
     }
 
-    function getVariableDebtToken(address _tokenReserve) public view returns (address) {
+    function _getVariableDebtToken(address _tokenReserve) private view returns (address) {
         return iPool.getReserveData(_tokenReserve).variableDebtTokenAddress;
     }
 }

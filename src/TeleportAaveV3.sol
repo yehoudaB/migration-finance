@@ -41,7 +41,7 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
         poolDataProvider = IPoolDataProvider(_poolAddressProvider);
     }
 
-    function requestFlashLoan(
+    function _requestFlashLoan(
         address _receiverAddress,
         address[] memory _assets,
         uint256[] memory _amounts,
@@ -49,7 +49,7 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
         address _onBehalfOf,
         bytes memory _params,
         uint16 _referralCode
-    ) public {
+    ) private {
         POOL.flashLoan(_receiverAddress, _assets, _amounts, _interestRateModes, _onBehalfOf, _params, _referralCode);
     }
 
@@ -94,7 +94,6 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
     /**
      * @notice this function aims to migrate the Aave position from one wallet to another
      * @dev before excuting this function, the _to address should have allowed the _form address to borrow on behalf of it
-     * @param _from the address of the wallet that has the Aave position
      * @param _to the address of the wallet that will receive the Aave position
      * @param assetsBorrowed the list of addresses of assets to borrow from the flashloan (to repay the Aave debts position)
      * @param amountsBorrowed the list of amounts to borrow from the flashloan (to repay the Aave debts position)
@@ -102,7 +101,6 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
      *
      */
     function moveAavePositionToAnotherWallet(
-        address _from,
         address _to,
         address[] memory assetsBorrowed,
         uint256[] memory amountsBorrowed,
@@ -110,14 +108,15 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
         address[] memory aTokenAssetsToMove,
         uint256[] memory aTokenAmountsToMove
     ) external {
-        bytes memory fromAndToAddressesEncoded = abi.encode(_from, _to, aTokenAssetsToMove, aTokenAmountsToMove);
-        requestFlashLoan(
+        bytes memory fromAndToAddressesEncodedAndATokensToMove =
+            abi.encode(msg.sender, _to, aTokenAssetsToMove, aTokenAmountsToMove);
+        _requestFlashLoan(
             address(this),
             assetsBorrowed,
             amountsBorrowed,
             interestRateModes,
             address(this),
-            fromAndToAddressesEncoded,
+            fromAndToAddressesEncodedAndATokensToMove,
             0
         );
     }
