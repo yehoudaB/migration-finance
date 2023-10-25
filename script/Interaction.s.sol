@@ -59,8 +59,8 @@ contract Interaction is Script {
     function run() external {
         HelperConfig helperConfig = new  HelperConfig();
         (,, IPool iPool,) = helperConfig.activeNetworkConfig();
-        address teleportAaveV3Address = 0xA509C7ed1bc160dA25f746C36f6c14503bc91A1f;
-        address interactWithTeleportAaveV3Address = 0x33F2D618C504d7860F3279F90e75279963fe9532;
+        address teleportAaveV3Address = 0x25E30Eb1AD42e7176B9711A169D1f2d135A88C2B;
+        address interactWithTeleportAaveV3Address = 0x5efADa3363f4040A032F4De4c1221ac6c2B73525;
         teleport(teleportAaveV3Address, interactWithTeleportAaveV3Address, iPool);
     }
 }
