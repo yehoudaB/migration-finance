@@ -277,7 +277,7 @@ contract MigrationFinanceTest is Test {
     }
 
     function testSetUserUseReserveAsCollateral() public {
-        vm.startBroadcast(USER_2);
+        vm.startBroadcast(USER_1);
         iPool.setUserUseReserveAsCollateral(usdc, true); // usdt is not permitted as collateral
 
         vm.stopBroadcast();
