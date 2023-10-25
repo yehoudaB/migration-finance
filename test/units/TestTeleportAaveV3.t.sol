@@ -255,6 +255,7 @@ contract MigrationFinanceTest is Test {
             ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
             console.log("user 2 approve delegation for", variableDebtToken, "amount", amountToBorrow);
         }
+
         vm.stopBroadcast();
         vm.startBroadcast(USER_1);
         (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
@@ -263,7 +264,22 @@ contract MigrationFinanceTest is Test {
             IERC20(aTokenAssetsToMove[i]).approve(address(teleportAaveV3), aTokenAmountsToMove[i]);
             console.log("user 1 approve", aTokenAssetsToMove[i], "amount", aTokenAmountsToMove[i]);
         }
+        for (uint256 i = 0; i < aaveUser1DataList.aaveReserveTokenList.length; i++) {
+            if (
+                aaveUser1DataList.areTokensCollateralThatUserDepositedInAave[i]
+                    && aaveUser1DataList.tokensAmountsThatUserDepositedInAave[i] > 0
+            ) {
+                iPool.setUserUseReserveAsCollateral(aaveUser1DataList.aaveReserveTokenList[i], true);
+            }
+        }
         interactWithTeleportAaveV3.teleportAaveV3PositionsBetweenWallets(USER_1, USER_2);
+        vm.stopBroadcast();
+    }
+
+    function testSetUserUseReserveAsCollateral() public {
+        vm.startBroadcast(USER_2);
+        iPool.setUserUseReserveAsCollateral(usdc, true); // usdt is not permitted as collateral
+
         vm.stopBroadcast();
     }
 }
