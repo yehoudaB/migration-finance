@@ -17,21 +17,10 @@ contract Interaction is Script {
     address public USER_1 = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
     address public USER_2 = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
 
-    function addConsumerUsingConfig(address raffle) public {
-        HelperConfig helperConfig = new HelperConfig();
-
-        (
-            IPoolAddressesProvider iPoolAddressProvider,
-            IPoolDataProvider iPoolDataProvider,
-            IPool iPool,
-            uint256 deployerKey
-        ) = helperConfig.activeNetworkConfig();
-    }
-
     function teleport(address teleportAaveV3Address, address interactWithTeleportAaveV3Address) public {
-        TeleportAaveV3 teleportAaveV3 = TeleportAaveV3(teleportAaveV3Address);
         InteractWithTeleportAaveV3 interactWithTeleportAaveV3 =
             InteractWithTeleportAaveV3(interactWithTeleportAaveV3Address);
+        TeleportAaveV3 teleportAaveV3 = TeleportAaveV3(teleportAaveV3Address);
         InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList =
             interactWithTeleportAaveV3.getAaveUserDataForAllAssets(USER_1);
 
@@ -42,25 +31,27 @@ contract Interaction is Script {
             address variableDebtToken = interactWithTeleportAaveV3.getVariableDebtToken(assetsBorrowed[i]);
             // amountBorrowed + fee (2%) // approximatively
             uint256 amountToBorrow = amountsBorrowed[i] + (amountsBorrowed[i] * 2) / 100;
-            ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
-            console.log("user 2 approve delegation for", variableDebtToken, "amount", amountToBorrow);
+            ICreditDelegationToken(variableDebtToken).approveDelegation(
+                address(teleportAaveV3), amountToBorrow + 9999000000
+            );
+            console.log("user 2 approve delegation for", variableDebtToken, "amount", amountToBorrow + 9999000000);
         }
         vm.stopBroadcast();
         vm.startBroadcast(USER_1);
         (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
             interactWithTeleportAaveV3.getATokenAssetToMoveToDestinationWallet(USER_1);
         for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
-            IERC20(aTokenAssetsToMove[i]).approve(address(teleportAaveV3), aTokenAmountsToMove[i]);
-            console.log("user 1 approve", aTokenAssetsToMove[i], "amount", aTokenAmountsToMove[i]);
+            IERC20(aTokenAssetsToMove[i]).approve(address(teleportAaveV3), aTokenAmountsToMove[i] + 9999000000);
+            console.log("user 1 approve", aTokenAssetsToMove[i], "amount", aTokenAmountsToMove[i] + 9999000000);
         }
         interactWithTeleportAaveV3.teleportAaveV3PositionsBetweenWallets(USER_1, USER_2);
         vm.stopBroadcast();
     }
 
     function run() external {
-        address teleportAaveV3Address = DevOpsTools.get_most_recent_deployment("TeleportAaveV3", block.chainid);
-        address interactWithTeleportAaveV3Address =
-            DevOpsTools.get_most_recent_deployment("InteractWithTeleportAaveV3", block.chainid);
+        address teleportAaveV3Address = 0xdf65CECbE8df607789620486F68c01076b66ba49;
+        address interactWithTeleportAaveV3Address = 0x06b22eDF4d5fD095789F793f16De2e52907589CC;
+
         teleport(teleportAaveV3Address, interactWithTeleportAaveV3Address);
     }
 }
