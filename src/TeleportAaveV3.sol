@@ -73,16 +73,19 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
             uint256 amountToBorrow = _amounts[i];
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow); // approve to repay to the POOL (regular debt)
             POOL.repay(tokenToBorrow, amountToBorrow, 2, _from); // repay the debt to the POOL for the _from address
-
+        }
+        for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
+            IERC20(aTokenAssetsToMove[i]).transferFrom(_from, _to, aTokenAmountsToMove[i]);
+        }
+        for (uint256 i = 0; i < _assets.length; i++) {
+            address tokenToBorrow = _assets[i];
+            uint256 amountToBorrow = _amounts[i];
             /* borrow the debt to the POOL for the _to address 
             * (the _to address should have allowed the contract  to borrow on behalf of it)
                 we borrow the amount + the premium (the premium is for paying the flashloan fee)
             */
             POOL.borrow(tokenToBorrow, amountToBorrow + _premiums[i], 2, 0, _to);
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow + _premiums[i]); // approve to repay to the FLASHLOAN
-        }
-        for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
-            IERC20(aTokenAssetsToMove[i]).transferFrom(_from, _to, aTokenAmountsToMove[i]);
         }
         // possibly merge the two for loops ...
         return true;
