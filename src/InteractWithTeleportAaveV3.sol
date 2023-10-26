@@ -57,7 +57,7 @@ contract InteractWithTeleportAaveV3 {
             _getATokenAssetToMoveToDestinationWallet(msg.sender);
 
         teleportAaveV3.moveAavePositionToAnotherWallet(
-            _to, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
+            msg.sender, _to, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
         );
     }
 
@@ -89,25 +89,35 @@ contract InteractWithTeleportAaveV3 {
         );
     }
 
+    /* 
+    *   @notice must be called by the destination wallet
+    *   @param _assetsBorrowed the list of addresses of assets that the source swallet borrowed (we need to replicate them in the destination wallet)
+    *   @param _amountsBorrowed the list of amounts that the source wallet borrowed
+    */
     function giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
-        address[] memory assetsBorrowed,
-        uint256[] memory amountsBorrowed
+        address[] memory _assetsBorrowed,
+        uint256[] memory _amountsBorrowed
     ) external {
-        for (uint256 i = 0; i < assetsBorrowed.length; i++) {
-            address variableDebtToken = _getVariableDebtToken(assetsBorrowed[i]);
+        for (uint256 i = 0; i < _assetsBorrowed.length; i++) {
+            address variableDebtToken = _getVariableDebtToken(_assetsBorrowed[i]);
             // amountBorrowed + fee (2%) // approximatively
-            uint256 amountToBorrow = amountsBorrowed[i] + (amountsBorrowed[i] * 2) / 100;
+            uint256 amountToBorrow = _amountsBorrowed[i] + (_amountsBorrowed[i] * 2) / 100;
             ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow * 2);
         }
     }
+    /* 
+    *   @notice must be called by the source wallet
+    *   @param _aTokenAssetsToMove the list of addresses of aToken that the source wallet has (we need to move them to the destination wallet)
+    *   @param _aTokenAmountsToMove the list of amounts of aToken that the source wallet has
+    */
 
     function giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
-        address[] memory aTokenAssetsToMove,
-        uint256[] memory aTokenAmountsToMove,
+        address[] memory _aTokenAssetsToMove,
+        uint256[] memory _aTokenAmountsToMove,
         InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList
     ) external {
-        for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
-            IERC20(aTokenAssetsToMove[i]).approve(address(teleportAaveV3), aTokenAmountsToMove[i]);
+        for (uint256 i = 0; i < _aTokenAssetsToMove.length; i++) {
+            IERC20(_aTokenAssetsToMove[i]).approve(address(teleportAaveV3), _aTokenAmountsToMove[i]);
         }
         for (uint256 i = 0; i < aaveUser1DataList.aaveReserveTokenList.length; i++) {
             if (

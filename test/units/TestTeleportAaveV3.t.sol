@@ -292,7 +292,7 @@ contract MigrationFinanceTest is Test {
             uint256[] memory amountsBorrowed,
             uint256[] memory interestRateModes,
             address[] memory aTokenAssetsToMove,
-            uint256[] memory aTokenAmountsToMove
+            uint256[] memory aTokenAmountsToMove,
         ) = interactWithTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
         for (uint256 i = 0; i < assetsBorrowed.length; i++) {
             console.log("assetsBorrowed", assetsBorrowed[i]);
@@ -303,8 +303,51 @@ contract MigrationFinanceTest is Test {
             console.log("aTokenAssetsToMove", aTokenAssetsToMove[i]);
             console.log("aTokenAmountsToMove", aTokenAmountsToMove[i]);
         }
-        teleportAaveV3.moveAavePositionToAnotherWallet(
-            USER_1, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
+    }
+
+    function testMoveAavePositions() public {
+        (
+            address[] memory assetsBorrowed,
+            uint256[] memory amountsBorrowed,
+            uint256[] memory interestRateModes,
+            address[] memory aTokenAssetsToMove,
+            uint256[] memory aTokenAmountsToMove,
+            InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList
+        ) = interactWithTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
+
+        vm.startBroadcast(USER_2);
+        interactWithTeleportAaveV3.giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
+            assetsBorrowed, amountsBorrowed
         );
+        vm.stopBroadcast();
+
+        vm.startBroadcast(USER_1);
+        interactWithTeleportAaveV3.giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
+            aTokenAssetsToMove, aTokenAmountsToMove, aaveUser1DataList
+        );
+        vm.stopBroadcast();
+
+        vm.startBroadcast();
+        teleportAaveV3.moveAavePositionToAnotherWallet(
+            USER_1, USER_2, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
+        );
+        vm.stopBroadcast();
+    }
+
+    function testUser1GiveAllowance() public {
+        (
+            ,
+            ,
+            ,
+            address[] memory aTokenAssetsToMove,
+            uint256[] memory aTokenAmountsToMove,
+            InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList
+        ) = interactWithTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
+
+        vm.startBroadcast(USER_1);
+        interactWithTeleportAaveV3.giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
+            aTokenAssetsToMove, aTokenAmountsToMove, aaveUser1DataList
+        );
+        vm.stopBroadcast();
     }
 }

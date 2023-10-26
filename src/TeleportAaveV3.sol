@@ -94,6 +94,7 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
     /**
      * @notice this function aims to migrate the Aave position from one wallet to another
      * @dev before excuting this function, the _to address should have allowed the _form address to borrow on behalf of it
+     * @param _from the address of the source wallet that want to migrate the Aave position
      * @param _to the address of the wallet that will receive the Aave position
      * @param assetsBorrowed the list of addresses of assets to borrow from the flashloan (to repay the Aave debts position)
      * @param amountsBorrowed the list of amounts to borrow from the flashloan (to repay the Aave debts position)
@@ -101,6 +102,7 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
      *
      */
     function moveAavePositionToAnotherWallet(
+        address _from,
         address _to,
         address[] memory assetsBorrowed,
         uint256[] memory amountsBorrowed,
@@ -109,7 +111,7 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
         uint256[] memory aTokenAmountsToMove
     ) external {
         bytes memory fromAndToAddressesEncodedAndATokensToMove =
-            abi.encode(msg.sender, _to, aTokenAssetsToMove, aTokenAmountsToMove);
+            abi.encode(_from, _to, aTokenAssetsToMove, aTokenAmountsToMove);
         _requestFlashLoan(
             address(this),
             assetsBorrowed,
