@@ -44,7 +44,7 @@ deploy:
 
 
 teleport:
-	@forge script script/Interaction.s.sol:Interaction $(NETWORK_ARGS)
+	@forge script script/InteractWithTeleportAaveV3.s.sol:InteractWithTeleportAaveV3 $(NETWORK_ARGS)
 
 
 # to pass network args add after make command  ARGS="--network sepolia"

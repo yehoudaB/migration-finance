@@ -8,9 +8,8 @@ import {TeleportAaveV3} from "src/TeleportAaveV3.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ICreditDelegationToken} from "@aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol";
 
-contract InteractWithTeleportAaveV3 {
+contract PrepareTeleportAaveV3 {
     TeleportAaveV3 teleportAaveV3;
-
     IPoolDataProvider iPoolDataProvider;
     IPool iPool;
 
@@ -49,7 +48,7 @@ contract InteractWithTeleportAaveV3 {
     * @dev Also the _from wallet had to approve the TeleportAaveV3 to move the aToken (deposited token) to the _to wallet
     */
     function teleportAaveV3PositionsBetweenWallets(address _to) external {
-        InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList = _getAaveUserDataForAllAssets(msg.sender);
+        PrepareTeleportAaveV3.AaveUserDataList memory aaveUser1DataList = _getAaveUserDataForAllAssets(msg.sender);
         (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes) =
             _getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
 
@@ -89,45 +88,6 @@ contract InteractWithTeleportAaveV3 {
         );
     }
 
-    /* 
-    *   @notice must be called by the destination wallet
-    *   @param _assetsBorrowed the list of addresses of assets that the source swallet borrowed (we need to replicate them in the destination wallet)
-    *   @param _amountsBorrowed the list of amounts that the source wallet borrowed
-    */
-    function giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
-        address[] memory _assetsBorrowed,
-        uint256[] memory _amountsBorrowed
-    ) external {
-        for (uint256 i = 0; i < _assetsBorrowed.length; i++) {
-            address variableDebtToken = _getVariableDebtToken(_assetsBorrowed[i]);
-            // amountBorrowed + fee (2%) // approximatively
-            uint256 amountToBorrow = _amountsBorrowed[i] + (_amountsBorrowed[i] * 2) / 100;
-            ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow * 2);
-        }
-    }
-    /* 
-    *   @notice must be called by the source wallet
-    *   @param _aTokenAssetsToMove the list of addresses of aToken that the source wallet has (we need to move them to the destination wallet)
-    *   @param _aTokenAmountsToMove the list of amounts of aToken that the source wallet has
-    */
-
-    function giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
-        address[] memory _aTokenAssetsToMove,
-        uint256[] memory _aTokenAmountsToMove,
-        InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList
-    ) external {
-        for (uint256 i = 0; i < _aTokenAssetsToMove.length; i++) {
-            IERC20(_aTokenAssetsToMove[i]).approve(address(teleportAaveV3), _aTokenAmountsToMove[i]);
-        }
-        for (uint256 i = 0; i < aaveUser1DataList.aaveReserveTokenList.length; i++) {
-            if (
-                aaveUser1DataList.areTokensCollateralThatUserDepositedInAave[i]
-                    && aaveUser1DataList.tokensAmountsThatUserDepositedInAave[i] > 0
-            ) {
-                iPool.setUserUseReserveAsCollateral(aaveUser1DataList.aaveReserveTokenList[i], true);
-            }
-        }
-    }
     /*
     * @notice this function returns the postion (deposit, borrow) of an user for in the Aave market for all assets
     * @param _user the address of the user 
@@ -205,7 +165,7 @@ contract InteractWithTeleportAaveV3 {
      *                           only the data of the Aave position you want to migrate
      */
     function _getAssetsToBorrowFromFLToRepayAaveDebt(AaveUserDataList memory _aaveUserDataList)
-        private
+        public
         pure
         returns (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes)
     {
@@ -237,7 +197,7 @@ contract InteractWithTeleportAaveV3 {
     * @dev this function is used by teleportAaveV3PositionsBetweenWallets to prepare the data to send to the TeleportAaveV3 contract
     */
     function _getATokenAssetToMoveToDestinationWallet(address _from)
-        private
+        public
         view
         returns (address[] memory, uint256[] memory)
     {
@@ -262,6 +222,10 @@ contract InteractWithTeleportAaveV3 {
             }
         }
         return (aTokenAssetsToMove, aTokenAmountsToMove);
+    }
+
+    function getVariableDebtToken(address _tokenReserve) public view returns (address) {
+        return iPool.getReserveData(_tokenReserve).variableDebtTokenAddress;
     }
 
     function _getATokenAssetToMoveToDestinationWallet2(address _from)
@@ -301,9 +265,5 @@ contract InteractWithTeleportAaveV3 {
 
     function _getAToken(address _tokenReserve) private view returns (address) {
         return iPool.getReserveData(_tokenReserve).aTokenAddress;
-    }
-
-    function _getVariableDebtToken(address _tokenReserve) private view returns (address) {
-        return iPool.getReserveData(_tokenReserve).variableDebtTokenAddress;
     }
 }

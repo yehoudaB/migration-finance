@@ -21,16 +21,16 @@ pragma solidity ^0.8.20;
 // private
 // internal & private view & pure functions
 // external & public view & pure functions
-
-import {FlashLoanReceiverBase} from "@aave-v3-core/contracts/flashloan/base/FlashLoanReceiverBase.sol";
+import {console} from "forge-std/Console.sol";
 import {FlashLoanReceiverBase} from "@aave-v3-core/contracts/flashloan/base/FlashLoanReceiverBase.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataProvider.sol";
+import {ICreditDelegationToken} from "@aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol";
 
 /**
  * @title A contract that allow users to migrate their Aave V3 position to another wallet
- * @author YehoudaB
+ * @author @yehoudaB
  * @notice this contract hasn't been  audited yet use at your own risk
  * @dev Implements Aave V3 Pool and Flashloan receiver
  */
@@ -82,12 +82,11 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
             uint256 amountToBorrow = _amounts[i];
             /* borrow the debt to the POOL for the _to address 
             * (the _to address should have allowed the contract  to borrow on behalf of it)
-                we borrow the amount + the premium (the premium is for paying the flashloan fee)
+            *    we borrow the amount + the premium (the premium is for paying the flashloan fee)
             */
             POOL.borrow(tokenToBorrow, amountToBorrow + _premiums[i], 2, 0, _to);
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow + _premiums[i]); // approve to repay to the FLASHLOAN
         }
-        // possibly merge the two for loops ...
         return true;
     }
 

@@ -14,18 +14,20 @@ import {IPoolDataProvider} from "@aave-v3-core/contracts/interfaces/IPoolDataPro
 import {IPool} from "@aave-v3-core/contracts/interfaces/IPool.sol";
 import {IUiPoolDataProviderV3} from "@aave-v3-periphery/contracts/misc/interfaces/IUiPoolDataProviderV3.sol";
 import {ICreditDelegationToken} from "@aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol";
-import {InteractWithTeleportAaveV3} from "src/InteractWithTeleportAaveV3.sol";
+import {PrepareTeleportAaveV3} from "src/PrepareTeleportAaveV3.sol";
+import {InteractWithTeleportAaveV3} from "script/InteractWithTeleportAaveV3.s.sol";
 
 contract MigrationFinanceTest is Test {
     /**
      * Events
      */
 
-    address public USER_1 = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
-    address public USER_2 = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
+    address public USER_2 = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
+    address public USER_1 = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
     TeleportAaveV3 public teleportAaveV3;
     HelperConfig helperConfig;
-    InteractWithTeleportAaveV3 interactWithTeleportAaveV3;
+    PrepareTeleportAaveV3 prepareTeleportAaveV3;
+    InteractWithTeleportAaveV3 public interactWithTeleportAaveV3;
 
     IPoolAddressesProvider iPoolAddressProvider;
     IPoolDataProvider iPoolDataProvider;
@@ -39,13 +41,13 @@ contract MigrationFinanceTest is Test {
 
     function setUp() public {
         DeployTeleportFinance teleportFinanceDeployer = new DeployTeleportFinance();
-        (teleportAaveV3, helperConfig, interactWithTeleportAaveV3) = teleportFinanceDeployer.run();
+        (teleportAaveV3, helperConfig, prepareTeleportAaveV3) = teleportFinanceDeployer.run();
         (iPoolAddressProvider, iPoolDataProvider, iPool, deployerKey) = helperConfig.activeNetworkConfig();
     }
 
     /* private function
     function testGetAaveReserveTokenList() public view {
-        address[] memory aaveReserveTokenList = interactWithTeleportAaveV3.getAaveMarketReserveTokenList();
+        address[] memory aaveReserveTokenList = prepareTeleportAaveV3.getAaveMarketReserveTokenList();
         for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
             console.log("aaveReserveTokenList", aaveReserveTokenList[i]);
         }
@@ -55,12 +57,12 @@ contract MigrationFinanceTest is Test {
 
     /* private function
     function testGetAaveUserDataForAllAsset() public view {
-        address[] memory aaveReserveTokenList = interactWithTeleportAaveV3.getAaveMarketReserveTokenList();
+        address[] memory aaveReserveTokenList = prepareTeleportAaveV3.getAaveMarketReserveTokenList();
 
         for (uint256 i = 0; i < aaveReserveTokenList.length; i++) {
             address reserveToken = aaveReserveTokenList[i];
-            InteractWithTeleportAaveV3.AaveUserDataOnOneAsset memory aaveUserDataOnOneAsset =
-                interactWithTeleportAaveV3.getAavePositionOfUserByAsset(reserveToken, USER_1);
+            prepareTeleportAaveV3.AaveUserDataOnOneAsset memory aaveUserDataOnOneAsset =
+                prepareTeleportAaveV3.getAavePositionOfUserByAsset(reserveToken, USER_1);
             console.log("------------------- ", ERC20(reserveToken).symbol(), " -------------------"); // remove all console.log before prod
             console.log("aaveUserDataOnOneAsset.currentATokenBalance", aaveUserDataOnOneAsset.currentATokenBalance);
             console.log("aaveUserDataOnOneAsset.currentStableDebt", aaveUserDataOnOneAsset.currentStableDebt);
@@ -78,8 +80,8 @@ contract MigrationFinanceTest is Test {
     }*/
     /* private function
     function testGetAaveAllUserPositions() public view {
-        InteractWithTeleportAaveV3.AaveUserDataList memory aaveUserDataList =
-            interactWithTeleportAaveV3.getAaveUserDataForAllAssets(USER_1);
+        prepareTeleportAaveV3.AaveUserDataList memory aaveUserDataList =
+            prepareTeleportAaveV3.getAaveUserDataForAllAssets(USER_1);
 
         for (uint256 i = 0; i < aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave.length; i++) {
             // remove all console.log before prod
@@ -143,10 +145,10 @@ contract MigrationFinanceTest is Test {
     }
     /* need to be refactored
     function testMoveAavePositionToAnotherWallet() external {
-        InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList =
-            interactWithTeleportAaveV3.getAaveUserDataForAllAssets(USER_1);
-        InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser2DataList =
-            interactWithTeleportAaveV3.getAaveUserDataForAllAssets(USER_2);
+        prepareTeleportAaveV3.AaveUserDataList memory aaveUser1DataList =
+            prepareTeleportAaveV3.getAaveUserDataForAllAssets(USER_1);
+        prepareTeleportAaveV3.AaveUserDataList memory aaveUser2DataList =
+            prepareTeleportAaveV3.getAaveUserDataForAllAssets(USER_2);
 
         console.log("-----------------BEFORE FLASHLOAN ------------------");
         for (uint256 i = 0; i < aaveUser1DataList.tokensAmountsThatUserVariableBorrowedFromAave.length; i++) {
@@ -171,10 +173,10 @@ contract MigrationFinanceTest is Test {
             );
         }
         (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes) =
-            interactWithTeleportAaveV3.getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
+            prepareTeleportAaveV3.getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
         vm.startPrank(USER_2);
         for (uint256 i = 0; i < assetsBorrowed.length; i++) {
-            address variableDebtToken = interactWithTeleportAaveV3.getVariableDebtToken(assetsBorrowed[i]);
+            address variableDebtToken = prepareTeleportAaveV3.getVariableDebtToken(assetsBorrowed[i]);
             // amountBorrowed + fee (2%) // approximatively
             uint256 amountToBorrow = amountsBorrowed[i] + (amountsBorrowed[i] * 2) / 100;
             ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
@@ -182,7 +184,7 @@ contract MigrationFinanceTest is Test {
         vm.stopPrank();
 
         (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
-            interactWithTeleportAaveV3.getATokenAssetToMoveToDestinationWallet(USER_1);
+            prepareTeleportAaveV3.getATokenAssetToMoveToDestinationWallet(USER_1);
         vm.startBroadcast(USER_1);
         for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
             IERC20(aTokenAssetsToMove[i]).approve(address(teleportAaveV3), aTokenAmountsToMove[i]);
@@ -193,8 +195,8 @@ contract MigrationFinanceTest is Test {
         );
         vm.stopBroadcast();
 
-        aaveUser1DataList = interactWithTeleportAaveV3.getAaveUserDataForAllAssets(USER_1);
-        aaveUser2DataList = interactWithTeleportAaveV3.getAaveUserDataForAllAssets(USER_2);
+        aaveUser1DataList = prepareTeleportAaveV3.getAaveUserDataForAllAssets(USER_1);
+        aaveUser2DataList = prepareTeleportAaveV3.getAaveUserDataForAllAssets(USER_2);
 
         console.log("-----------------AFTER FLASHLOAN ------------------");
         for (uint256 i = 0; i < aaveUser1DataList.tokensAmountsThatUserVariableBorrowedFromAave.length; i++) {
@@ -236,64 +238,30 @@ contract MigrationFinanceTest is Test {
         iPool.borrow(link, amount, 2, 0, USER_2);
         vm.stopBroadcast();
     }
-    /* private function
+    // private function
+
     function testGetATokenAssetToMoveToDestinationWallet() public view {
         (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
-            interactWithTeleportAaveV3.getATokenAssetToMoveToDestinationWallet(USER_1);
+            prepareTeleportAaveV3._getATokenAssetToMoveToDestinationWallet(USER_1);
         console.log("aTokenAssetsToMove", aTokenAssetsToMove.length);
         console.log("aTokenAmountsToMove", aTokenAmountsToMove.length);
     }
 
-    function testMoveWalletWithInteractionContract() public {
-        InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList =
-            interactWithTeleportAaveV3.getAaveUserDataForAllAssets(USER_1);
-
-        (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed,) =
-            interactWithTeleportAaveV3.getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
-        vm.startBroadcast(USER_2);
-        for (uint256 i = 0; i < assetsBorrowed.length; i++) {
-            address variableDebtToken = interactWithTeleportAaveV3.getVariableDebtToken(assetsBorrowed[i]);
-            // amountBorrowed + fee (2%) // approximatively
-            uint256 amountToBorrow = amountsBorrowed[i] + (amountsBorrowed[i] * 2) / 100;
-            ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
-            console.log("user 2 approve delegation for", variableDebtToken, "amount", amountToBorrow);
-        }
-
-        vm.stopBroadcast();
-        vm.startBroadcast(USER_1);
-        (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
-            interactWithTeleportAaveV3.getATokenAssetToMoveToDestinationWallet(USER_1);
-        for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
-            IERC20(aTokenAssetsToMove[i]).approve(address(teleportAaveV3), aTokenAmountsToMove[i]);
-            console.log("user 1 approve", aTokenAssetsToMove[i], "amount", aTokenAmountsToMove[i]);
-        }
-        for (uint256 i = 0; i < aaveUser1DataList.aaveReserveTokenList.length; i++) {
-            if (
-                aaveUser1DataList.areTokensCollateralThatUserDepositedInAave[i]
-                    && aaveUser1DataList.tokensAmountsThatUserDepositedInAave[i] > 0
-            ) {
-                iPool.setUserUseReserveAsCollateral(aaveUser1DataList.aaveReserveTokenList[i], true);
-            }
-        }
-        interactWithTeleportAaveV3.teleportAaveV3PositionsBetweenWallets(USER_1, USER_2);
-        vm.stopBroadcast();
-    } */
-
     function testSetUserUseReserveAsCollateral() public {
         vm.startBroadcast(USER_1);
+        // the user must have deposited this asset in the pool before calling this function
         iPool.setUserUseReserveAsCollateral(usdc, true); // usdt is not permitted as collateral
-
         vm.stopBroadcast();
     }
 
-    function testGetAllAaveV3PositionsToMoveViaTeleportAaveV3() public {
+    function testGetAllAaveV3PositionsToMoveViaTeleportAaveV3() public view {
         (
             address[] memory assetsBorrowed,
             uint256[] memory amountsBorrowed,
             uint256[] memory interestRateModes,
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove,
-        ) = interactWithTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
+        ) = prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
         for (uint256 i = 0; i < assetsBorrowed.length; i++) {
             console.log("assetsBorrowed", assetsBorrowed[i]);
             console.log("amountsBorrowed", amountsBorrowed[i]);
@@ -312,42 +280,52 @@ contract MigrationFinanceTest is Test {
             uint256[] memory interestRateModes,
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove,
-            InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList
-        ) = interactWithTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
+        ) = prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_1);
 
         vm.startBroadcast(USER_2);
-        interactWithTeleportAaveV3.giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
-            assetsBorrowed, amountsBorrowed
-        );
+        giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(assetsBorrowed, amountsBorrowed);
         vm.stopBroadcast();
 
         vm.startBroadcast(USER_1);
-        interactWithTeleportAaveV3.giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
-            aTokenAssetsToMove, aTokenAmountsToMove, aaveUser1DataList
-        );
-        vm.stopBroadcast();
+        giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(aTokenAssetsToMove, aTokenAmountsToMove);
 
-        vm.startBroadcast();
         teleportAaveV3.moveAavePositionToAnotherWallet(
             USER_1, USER_2, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
         );
         vm.stopBroadcast();
     }
 
-    function testUser1GiveAllowance() public {
-        (
-            ,
-            ,
-            ,
-            address[] memory aTokenAssetsToMove,
-            uint256[] memory aTokenAmountsToMove,
-            InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList
-        ) = interactWithTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_1);
+    /////////////////////////////////////////////////////////////////////
+    ////////////////////////// APPROVAL FUNCTIONS ////////////////////////
+    /////// those function are duplicated in InteractWithTeleportAaveV3.s.sol but it is needed for testing to not call from another contract but from the test contract
+    /* 
+    *   @notice must be called by the destination wallet
+    *   @param _assetsBorrowed the list of addresses of assets that the source swallet borrowed (we need to replicate them in the destination wallet)
+    *   @param _amountsBorrowed the list of amounts that the source wallet borrowed
+    */
+    function giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
+        address[] memory _assetsBorrowed,
+        uint256[] memory _amountsBorrowed
+    ) public {
+        for (uint256 i = 0; i < _assetsBorrowed.length; i++) {
+            address variableDebtToken = prepareTeleportAaveV3.getVariableDebtToken(_assetsBorrowed[i]);
+            // amountBorrowed + fee (2%) // approximatively
+            uint256 amountToBorrow = _amountsBorrowed[i] + (_amountsBorrowed[i] * 2) / 100;
+            ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
+        }
+    }
 
-        vm.startBroadcast(USER_1);
-        interactWithTeleportAaveV3.giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
-            aTokenAssetsToMove, aTokenAmountsToMove, aaveUser1DataList
-        );
-        vm.stopBroadcast();
+    /* 
+    *   @notice must be called by the source wallet
+    *   @param _aTokenAssetsToMove the list of addresses of aToken that the source wallet has (we need to move them to the destination wallet)
+    *   @param _aTokenAmountsToMove the list of amounts of aToken that the source wallet has
+    */
+    function giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
+        address[] memory _aTokenAssetsToMove,
+        uint256[] memory _aTokenAmountsToMove
+    ) public {
+        for (uint256 i = 0; i < _aTokenAssetsToMove.length; i++) {
+            IERC20(_aTokenAssetsToMove[i]).approve(address(teleportAaveV3), _aTokenAmountsToMove[i]);
+        }
     }
 }

@@ -1,7 +1,7 @@
 # Migration Finance
 
 ### Configuration
-for interaction contract run
+for interactWithTeleportAaveV3 contract run
 ```
   forge install ChainAccelOrg/foundry-devops --no-commit
 ```
