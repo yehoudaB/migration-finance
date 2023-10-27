@@ -342,7 +342,7 @@ contract MigrationFinanceTest is Test {
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove,
             InteractWithTeleportAaveV3.AaveUserDataList memory aaveUser1DataList
-        ) = interactWithTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
+        ) = interactWithTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_1);
 
         vm.startBroadcast(USER_1);
         interactWithTeleportAaveV3.giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
