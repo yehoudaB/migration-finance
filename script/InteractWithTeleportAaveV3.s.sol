@@ -23,7 +23,7 @@ contract InteractWithTeleportAaveV3 is Script {
         teleport(teleportAaveV3, prepareTeleportAaveV3);
     }
 
-    function teleport(TeleportAaveV3 teleportAaveV3, PrepareTeleportAaveV3 prepareTeleportAaveV3) public {
+    function teleport(TeleportAaveV3 _teleportAaveV3, PrepareTeleportAaveV3 _prepareTeleportAaveV3) public {
         address destinationAddress = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
         address sourceAddress = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
 
@@ -33,21 +33,21 @@ contract InteractWithTeleportAaveV3 is Script {
             uint256[] memory interestRateModes,
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove
-        ) = getParamsToFillForMovingPosition(prepareTeleportAaveV3, sourceAddress);
+        ) = _prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(sourceAddress);
         uint256 sourceAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 1);
         uint256 destinationAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 0);
 
         vm.startBroadcast(destinationAddressPK);
 
         giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
-            assetsBorrowed, amountsBorrowed, teleportAaveV3, prepareTeleportAaveV3
+            assetsBorrowed, amountsBorrowed, _teleportAaveV3, _prepareTeleportAaveV3
         );
         vm.stopBroadcast();
         vm.startBroadcast(sourceAddressPK);
         giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
-            aTokenAssetsToMove, aTokenAmountsToMove, teleportAaveV3
+            aTokenAssetsToMove, aTokenAmountsToMove, _teleportAaveV3
         );
-        teleportAaveV3.moveAavePositionToAnotherWallet(
+        _teleportAaveV3.moveAavePositionToAnotherWallet(
             sourceAddress,
             destinationAddress,
             assetsBorrowed,
@@ -57,21 +57,6 @@ contract InteractWithTeleportAaveV3 is Script {
             aTokenAmountsToMove
         );
         vm.stopBroadcast();
-    }
-
-    function getParamsToFillForMovingPosition(PrepareTeleportAaveV3 _prepareTeleportAaveV3, address _sourceWallet)
-        public
-        view
-        returns (
-            address[] memory assetsBorrowed,
-            uint256[] memory amountsBorrowed,
-            uint256[] memory interestRateModes,
-            address[] memory aTokenAssetsToMove,
-            uint256[] memory aTokenAmountsToMove
-        )
-    {
-        (assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove) =
-            _prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(_sourceWallet);
     }
 
     /////////////////////////////////////////////////////////////////////
