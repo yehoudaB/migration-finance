@@ -54,6 +54,40 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
     }
 
     /**
+     * @notice this function aims to migrate the Aave position from one wallet to another
+     * @dev before excuting this function, the _to address should have allowed the _form address to borrow on behalf of it
+     *
+     * @param _to the address of the wallet that will receive the Aave position
+     * @param assetsBorrowed the list of addresses of assets to borrow from the flashloan (to repay the Aave debts position)
+     * @param amountsBorrowed the list of amounts to borrow from the flashloan (to repay the Aave debts position)
+     * @param interestRateModesForPositions the types of debt position that the source wallet has
+     * @param interestRateModesForFL the types of debt position to open if the flashloan is not returned. for us is 0: (no open debt) (amount+fee must be paid in this case or revert)
+     *
+     */
+    function moveAavePositionToAnotherWallet(
+        address _from,
+        address _to,
+        address[] memory assetsBorrowed,
+        uint256[] memory amountsBorrowed,
+        uint256[] memory interestRateModesForPositions,
+        uint256[] memory interestRateModesForFL,
+        address[] memory aTokenAssetsToMove,
+        uint256[] memory aTokenAmountsToMove
+    ) external {
+        bytes memory fromAndToAddressesEncodedAndATokensToMoveAndInterestRateModeForPositions =
+            abi.encode(_from, _to, aTokenAssetsToMove, aTokenAmountsToMove, interestRateModesForPositions);
+        _requestFlashLoan(
+            address(this),
+            assetsBorrowed,
+            amountsBorrowed,
+            interestRateModesForFL,
+            address(this),
+            fromAndToAddressesEncodedAndATokensToMoveAndInterestRateModeForPositions,
+            0
+        );
+    }
+
+    /**
      * @notice this function is called after your contract has received the flash loaned amount
      * @dev Ensure that the contract can return the debt + premium, e.g., has
      *      enough funds to repay and has approved the Pool to pull the total amount
@@ -65,14 +99,19 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
         address _initiator,
         bytes calldata _params
     ) external returns (bool) {
-        (address _from, address _to, address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
-            abi.decode(_params, (address, address, address[], uint256[]));
+        (
+            address _from,
+            address _to,
+            address[] memory aTokenAssetsToMove,
+            uint256[] memory aTokenAmountsToMove,
+            uint256[] memory interestRateModesForPositions
+        ) = abi.decode(_params, (address, address, address[], uint256[], uint256[]));
 
         for (uint256 i = 0; i < _assets.length; i++) {
             address tokenToBorrow = _assets[i];
             uint256 amountToBorrow = _amounts[i];
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow); // approve to repay to the POOL (regular debt)
-            POOL.repay(tokenToBorrow, amountToBorrow, 2, _from); // repay the debt to the POOL for the _from address
+            POOL.repay(tokenToBorrow, amountToBorrow, interestRateModesForPositions[i], _from); // repay the debt to the POOL for the _from address
         }
         for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
             IERC20(aTokenAssetsToMove[i]).transferFrom(_from, _to, aTokenAmountsToMove[i]);
@@ -84,41 +123,9 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
             * (the _to address should have allowed the contract  to borrow on behalf of it)
             *    we borrow the amount + the premium (the premium is for paying the flashloan fee)
             */
-            POOL.borrow(tokenToBorrow, amountToBorrow + _premiums[i], 2, 0, _to);
+            POOL.borrow(tokenToBorrow, amountToBorrow + _premiums[i], interestRateModesForPositions[i], 0, _to);
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow + _premiums[i]); // approve to repay to the FLASHLOAN
         }
         return true;
-    }
-
-    /**
-     * @notice this function aims to migrate the Aave position from one wallet to another
-     * @dev before excuting this function, the _to address should have allowed the _form address to borrow on behalf of it
-     * @param _from the address of the source wallet that want to migrate the Aave position
-     * @param _to the address of the wallet that will receive the Aave position
-     * @param assetsBorrowed the list of addresses of assets to borrow from the flashloan (to repay the Aave debts position)
-     * @param amountsBorrowed the list of amounts to borrow from the flashloan (to repay the Aave debts position)
-     * @param interestRateModes the types of debt position to open if the flashloan is not returned. for us is 0: (no open debt) (amount+fee must be paid in this case or revert)
-     *
-     */
-    function moveAavePositionToAnotherWallet(
-        address _from,
-        address _to,
-        address[] memory assetsBorrowed,
-        uint256[] memory amountsBorrowed,
-        uint256[] memory interestRateModes,
-        address[] memory aTokenAssetsToMove,
-        uint256[] memory aTokenAmountsToMove
-    ) external {
-        bytes memory fromAndToAddressesEncodedAndATokensToMove =
-            abi.encode(_from, _to, aTokenAssetsToMove, aTokenAmountsToMove);
-        _requestFlashLoan(
-            address(this),
-            assetsBorrowed,
-            amountsBorrowed,
-            interestRateModes,
-            address(this),
-            fromAndToAddressesEncodedAndATokensToMove,
-            0
-        );
     }
 }

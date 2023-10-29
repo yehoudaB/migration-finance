@@ -45,18 +45,26 @@ contract PrepareTeleportAaveV3 {
         returns (
             address[] memory assetsBorrowed,
             uint256[] memory amountsBorrowed,
-            uint256[] memory interestRateModes,
+            uint256[] memory interestRateModesForPositions,
+            uint256[] memory interestRateModesForFL,
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove
         )
     {
         AaveUserDataList memory sourceWalletAaveDataList = _getAaveUserDataForAllAssets(_user);
-        (assetsBorrowed, amountsBorrowed, interestRateModes) =
+        (assetsBorrowed, amountsBorrowed, interestRateModesForPositions, interestRateModesForFL) =
             _getAssetsToBorrowFromFLToRepayAaveDebt(sourceWalletAaveDataList);
 
         (aTokenAssetsToMove, aTokenAmountsToMove) = _getATokenAssetToMoveToDestinationWallet(_user);
 
-        return (assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove);
+        return (
+            assetsBorrowed,
+            amountsBorrowed,
+            interestRateModesForPositions,
+            interestRateModesForFL,
+            aTokenAssetsToMove,
+            aTokenAmountsToMove
+        );
     }
 
     /*
@@ -138,25 +146,41 @@ contract PrepareTeleportAaveV3 {
     function _getAssetsToBorrowFromFLToRepayAaveDebt(AaveUserDataList memory _aaveUserDataList)
         private
         pure
-        returns (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes)
+        returns (
+            address[] memory assetsBorrowed,
+            uint256[] memory amountsBorrowed,
+            uint256[] memory interestRateModesForPositions,
+            uint256[] memory interestRateModesForFL
+        )
     {
         uint256 lengthOfassetsToBorrowArray = 0;
 
         for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
-            if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
+            if (
+                _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0
+                    || _aaveUserDataList.tokensAmountThatUserStableBorrowedFromAave[i] > 0
+            ) {
                 lengthOfassetsToBorrowArray++;
             }
         }
         assetsBorrowed = new address[](lengthOfassetsToBorrowArray);
         amountsBorrowed = new uint256[](lengthOfassetsToBorrowArray);
-        interestRateModes = new uint256[](lengthOfassetsToBorrowArray);
+        interestRateModesForPositions = new uint256[](lengthOfassetsToBorrowArray);
+        interestRateModesForFL = new uint256[](lengthOfassetsToBorrowArray);
         uint256 indexOfAssetToBorrow = 0;
         for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
-            if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
+            if (
+                _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0
+                    || _aaveUserDataList.tokensAmountThatUserStableBorrowedFromAave[i] > 0
+            ) {
                 assetsBorrowed[indexOfAssetToBorrow] = _aaveUserDataList.aaveReserveTokenList[i];
-                amountsBorrowed[indexOfAssetToBorrow] =
-                    _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i];
-                interestRateModes[indexOfAssetToBorrow] = 0;
+                amountsBorrowed[indexOfAssetToBorrow] = _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i]
+                    > 0
+                    ? _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i]
+                    : _aaveUserDataList.tokensAmountThatUserStableBorrowedFromAave[i];
+                interestRateModesForPositions[indexOfAssetToBorrow] =
+                    _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0 ? 2 : 1;
+                interestRateModesForFL[indexOfAssetToBorrow] = 0;
                 indexOfAssetToBorrow++;
             }
         }
@@ -199,31 +223,8 @@ contract PrepareTeleportAaveV3 {
         return iPool.getReserveData(_tokenReserve).variableDebtTokenAddress;
     }
 
-    function _getATokenAssetToMoveToDestinationWallet2(address _from)
-        private
-        view
-        returns (address[] memory, uint256[] memory)
-    {
-        IPoolDataProvider.TokenData[] memory aTokenList = _getAaveMarketATokenList();
-        uint256 lengthOfAssetToMoveArray;
-        for (uint256 i = 0; i < aTokenList.length; i++) {
-            address aToken = aTokenList[i].tokenAddress;
-            if (IERC20(aToken).balanceOf(_from) > 0) {
-                lengthOfAssetToMoveArray++;
-            }
-        }
-        address[] memory aTokenAssetsToMove = new address[](lengthOfAssetToMoveArray);
-        uint256[] memory aTokenAmountsToMove = new uint256[](lengthOfAssetToMoveArray);
-        uint256 indexOfATokenToMove = 0;
-        for (uint256 i = 0; i < aTokenList.length; i++) {
-            address aToken = aTokenList[i].tokenAddress;
-            if (IERC20(aToken).balanceOf(_from) > 0) {
-                aTokenAssetsToMove[indexOfATokenToMove] = aToken;
-                aTokenAmountsToMove[indexOfATokenToMove] = IERC20(aToken).balanceOf(_from);
-                indexOfATokenToMove++;
-            }
-        }
-        return (aTokenAssetsToMove, aTokenAmountsToMove);
+    function getStableDebtToken(address _tokenReserve) public view returns (address) {
+        return iPool.getReserveData(_tokenReserve).stableDebtTokenAddress;
     }
 
     function _getAaveMarketATokenList() private view returns (IPoolDataProvider.TokenData[] memory) {

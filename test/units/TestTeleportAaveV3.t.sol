@@ -22,12 +22,12 @@ contract MigrationFinanceTest is Test {
      * Events
      */
 
-    address public USER_2 = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
-    address public USER_1 = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
+    address public USER_1 = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
+    address public USER_2 = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
     TeleportAaveV3 public teleportAaveV3;
     HelperConfig helperConfig;
     PrepareTeleportAaveV3 prepareTeleportAaveV3;
-
+    InteractWithTeleportAaveV3 interactWithTeleportAaveV3;
     IPoolAddressesProvider iPoolAddressProvider;
     IPoolDataProvider iPoolDataProvider;
     IPool iPool;
@@ -42,6 +42,7 @@ contract MigrationFinanceTest is Test {
         DeployTeleportFinance teleportFinanceDeployer = new DeployTeleportFinance();
         (teleportAaveV3, helperConfig, prepareTeleportAaveV3) = teleportFinanceDeployer.run();
         (iPoolAddressProvider, iPoolDataProvider, iPool, deployerKey) = helperConfig.activeNetworkConfig();
+        interactWithTeleportAaveV3 = new InteractWithTeleportAaveV3();
     }
 
     function testBorrowOnBehalf() public {
@@ -80,14 +81,16 @@ contract MigrationFinanceTest is Test {
         (
             address[] memory assetsBorrowed,
             uint256[] memory amountsBorrowed,
-            uint256[] memory interestRateModes,
+            uint256[] memory interestRateModesForPositions,
+            uint256[] memory interestRateModesForFL,
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove
         ) = prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
         for (uint256 i = 0; i < assetsBorrowed.length; i++) {
             console.log("assetsBorrowed", assetsBorrowed[i]);
             console.log("amountsBorrowed", amountsBorrowed[i]);
-            console.log("interestRateModes", interestRateModes[i]);
+            console.log("interestRateModesForPositions", interestRateModesForPositions[i]);
+            console.log("interestRateModesForFL", interestRateModesForFL[i]);
         }
         for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
             console.log("aTokenAssetsToMove", aTokenAssetsToMove[i]);
@@ -99,60 +102,37 @@ contract MigrationFinanceTest is Test {
         (
             address[] memory assetsBorrowed,
             uint256[] memory amountsBorrowed,
-            uint256[] memory interestRateModes,
+            uint256[] memory interestRateModesForPositions,
+            uint256[] memory interestRateModesForFL,
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove
         ) = prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_1);
 
         vm.startBroadcast(USER_2);
-        giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(assetsBorrowed, amountsBorrowed);
+        interactWithTeleportAaveV3.giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
+            assetsBorrowed, amountsBorrowed, interestRateModesForPositions, teleportAaveV3, prepareTeleportAaveV3
+        );
         vm.stopBroadcast();
 
         vm.startBroadcast(USER_1);
-        giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(aTokenAssetsToMove, aTokenAmountsToMove);
+        interactWithTeleportAaveV3.giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
+            aTokenAssetsToMove, aTokenAmountsToMove, teleportAaveV3
+        );
 
         teleportAaveV3.moveAavePositionToAnotherWallet(
-            USER_1, USER_2, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
+            USER_1,
+            USER_2,
+            assetsBorrowed,
+            amountsBorrowed,
+            interestRateModesForPositions,
+            interestRateModesForFL,
+            aTokenAssetsToMove,
+            aTokenAmountsToMove
         );
         vm.stopBroadcast();
     }
 
     function testMoveAavePositionsWithInteractions() public {
-        InteractWithTeleportAaveV3 interactWithTeleportAaveV3 = new InteractWithTeleportAaveV3();
         interactWithTeleportAaveV3.teleport(teleportAaveV3, prepareTeleportAaveV3);
-    }
-
-    /////////////////////////////////////////////////////////////////////
-    ////////////////////////// APPROVAL FUNCTIONS ////////////////////////
-    /////// those function are duplicated in InteractWithTeleportAaveV3.s.sol but it is needed for testing to not call from another contract but from the test contract
-    /* 
-    *   @notice must be called by the destination wallet
-    *   @param _assetsBorrowed the list of addresses of assets that the source swallet borrowed (we need to replicate them in the destination wallet)
-    *   @param _amountsBorrowed the list of amounts that the source wallet borrowed
-    */
-    function giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
-        address[] memory _assetsBorrowed,
-        uint256[] memory _amountsBorrowed
-    ) public {
-        for (uint256 i = 0; i < _assetsBorrowed.length; i++) {
-            address variableDebtToken = prepareTeleportAaveV3.getVariableDebtToken(_assetsBorrowed[i]);
-            // amountBorrowed + fee (2%) // approximatively
-            uint256 amountToBorrow = _amountsBorrowed[i] + (_amountsBorrowed[i] * 2) / 100;
-            ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
-        }
-    }
-
-    /* 
-    *   @notice must be called by the source wallet
-    *   @param _aTokenAssetsToMove the list of addresses of aToken that the source wallet has (we need to move them to the destination wallet)
-    *   @param _aTokenAmountsToMove the list of amounts of aToken that the source wallet has
-    */
-    function giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
-        address[] memory _aTokenAssetsToMove,
-        uint256[] memory _aTokenAmountsToMove
-    ) public {
-        for (uint256 i = 0; i < _aTokenAssetsToMove.length; i++) {
-            IERC20(_aTokenAssetsToMove[i]).approve(address(teleportAaveV3), _aTokenAmountsToMove[i]);
-        }
     }
 }

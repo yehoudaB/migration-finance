@@ -24,14 +24,15 @@ contract InteractWithTeleportAaveV3 is Script {
     }
 
     function teleport(TeleportAaveV3 _teleportAaveV3, PrepareTeleportAaveV3 _prepareTeleportAaveV3) public {
-        address sourceAddress = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
-        address destinationAddress = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
-        uint256 sourceAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 0);
-        uint256 destinationAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 1);
+        address destinationAddress = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
+        address sourceAddress = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
+        uint256 destinationAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 0);
+        uint256 sourceAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 1);
         (
             address[] memory assetsBorrowed,
             uint256[] memory amountsBorrowed,
-            uint256[] memory interestRateModes,
+            uint256[] memory interestRateModesForPositions,
+            uint256[] memory interestRateModesForFL,
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove
         ) = _prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(sourceAddress);
@@ -39,7 +40,7 @@ contract InteractWithTeleportAaveV3 is Script {
         vm.startBroadcast(destinationAddressPK);
 
         giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
-            assetsBorrowed, amountsBorrowed, _teleportAaveV3, _prepareTeleportAaveV3
+            assetsBorrowed, amountsBorrowed, interestRateModesForPositions, _teleportAaveV3, _prepareTeleportAaveV3
         );
         vm.stopBroadcast();
         vm.startBroadcast(sourceAddressPK);
@@ -51,7 +52,8 @@ contract InteractWithTeleportAaveV3 is Script {
             destinationAddress,
             assetsBorrowed,
             amountsBorrowed,
-            interestRateModes,
+            interestRateModesForPositions,
+            interestRateModesForFL,
             aTokenAssetsToMove,
             aTokenAmountsToMove
         );
@@ -68,14 +70,22 @@ contract InteractWithTeleportAaveV3 is Script {
     function giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
         address[] memory _assetsBorrowed,
         uint256[] memory _amountsBorrowed,
+        uint256[] memory _interestRateModesForPositions,
         TeleportAaveV3 teleportAaveV3,
         PrepareTeleportAaveV3 prepareTeleportAaveV3
     ) public {
         for (uint256 i = 0; i < _assetsBorrowed.length; i++) {
-            address variableDebtToken = prepareTeleportAaveV3.getVariableDebtToken(_assetsBorrowed[i]);
+            address debtToken;
+            if (_interestRateModesForPositions[i] == 1) {
+                // 1: stable mode debt
+                debtToken = prepareTeleportAaveV3.getStableDebtToken(_assetsBorrowed[i]);
+            } else {
+                // 2: variable mode debt
+                debtToken = prepareTeleportAaveV3.getVariableDebtToken(_assetsBorrowed[i]);
+            }
             // amountBorrowed + fee (2%) // approximatively
             uint256 amountToBorrow = _amountsBorrowed[i] + (_amountsBorrowed[i] * 2) / 100;
-            ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
+            ICreditDelegationToken(debtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
         }
     }
 
