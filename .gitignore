@@ -16,3 +16,5 @@ lib/aave-v3-core
 lib/forge-std
 lib/foundry-devops
 lib/openzeppelin-contracts
+lib/**
+
