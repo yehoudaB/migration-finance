@@ -27,7 +27,6 @@ contract MigrationFinanceTest is Test {
     TeleportAaveV3 public teleportAaveV3;
     HelperConfig helperConfig;
     PrepareTeleportAaveV3 prepareTeleportAaveV3;
-    InteractWithTeleportAaveV3 public interactWithTeleportAaveV3;
 
     IPoolAddressesProvider iPoolAddressProvider;
     IPoolDataProvider iPoolDataProvider;
@@ -83,7 +82,7 @@ contract MigrationFinanceTest is Test {
             uint256[] memory amountsBorrowed,
             uint256[] memory interestRateModes,
             address[] memory aTokenAssetsToMove,
-            uint256[] memory aTokenAmountsToMove,
+            uint256[] memory aTokenAmountsToMove
         ) = prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
         for (uint256 i = 0; i < assetsBorrowed.length; i++) {
             console.log("assetsBorrowed", assetsBorrowed[i]);
@@ -102,7 +101,7 @@ contract MigrationFinanceTest is Test {
             uint256[] memory amountsBorrowed,
             uint256[] memory interestRateModes,
             address[] memory aTokenAssetsToMove,
-            uint256[] memory aTokenAmountsToMove,
+            uint256[] memory aTokenAmountsToMove
         ) = prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_1);
 
         vm.startBroadcast(USER_2);
@@ -116,6 +115,11 @@ contract MigrationFinanceTest is Test {
             USER_1, USER_2, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
         );
         vm.stopBroadcast();
+    }
+
+    function testMoveAavePositionsWithInteractions() public {
+        InteractWithTeleportAaveV3 interactWithTeleportAaveV3 = new InteractWithTeleportAaveV3();
+        interactWithTeleportAaveV3.teleport(teleportAaveV3, prepareTeleportAaveV3);
     }
 
     /////////////////////////////////////////////////////////////////////

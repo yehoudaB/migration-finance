@@ -39,27 +39,6 @@ contract PrepareTeleportAaveV3 {
         teleportAaveV3 = _teleportAaveV3;
     }
 
-    /*
-    * @notice this function is used to migrate an Aave position from one wallet to another
-    * @param _from the address of the wallet that has the Aave position
-    * @param _to the address of the wallet that will receive the Aave position
-    * @dev the _to wallet had to approve the TeleportAaveV3 to borrow on its behalf (debtToken approveDelegation method )
-    *  of amount = the total amount of debt of the _from wallet + FL fee 
-    * @dev Also the _from wallet had to approve the TeleportAaveV3 to move the aToken (deposited token) to the _to wallet
-    */
-    function teleportAaveV3PositionsBetweenWallets(address _to) external {
-        PrepareTeleportAaveV3.AaveUserDataList memory aaveUser1DataList = _getAaveUserDataForAllAssets(msg.sender);
-        (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes) =
-            _getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
-
-        (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
-            _getATokenAssetToMoveToDestinationWallet(msg.sender);
-
-        teleportAaveV3.moveAavePositionToAnotherWallet(
-            msg.sender, _to, assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove
-        );
-    }
-
     function getAllAaveV3PositionsToMoveViaTeleportAaveV3(address _user)
         external
         view
@@ -68,24 +47,16 @@ contract PrepareTeleportAaveV3 {
             uint256[] memory amountsBorrowed,
             uint256[] memory interestRateModes,
             address[] memory aTokenAssetsToMove,
-            uint256[] memory aTokenAmountsToMove,
-            AaveUserDataList memory aaveUser1DataList
+            uint256[] memory aTokenAmountsToMove
         )
     {
-        aaveUser1DataList = _getAaveUserDataForAllAssets(_user);
+        AaveUserDataList memory sourceWalletAaveDataList = _getAaveUserDataForAllAssets(_user);
         (assetsBorrowed, amountsBorrowed, interestRateModes) =
-            _getAssetsToBorrowFromFLToRepayAaveDebt(aaveUser1DataList);
+            _getAssetsToBorrowFromFLToRepayAaveDebt(sourceWalletAaveDataList);
 
         (aTokenAssetsToMove, aTokenAmountsToMove) = _getATokenAssetToMoveToDestinationWallet(_user);
 
-        return (
-            assetsBorrowed,
-            amountsBorrowed,
-            interestRateModes,
-            aTokenAssetsToMove,
-            aTokenAmountsToMove,
-            aaveUser1DataList
-        );
+        return (assetsBorrowed, amountsBorrowed, interestRateModes, aTokenAssetsToMove, aTokenAmountsToMove);
     }
 
     /*
