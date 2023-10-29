@@ -136,7 +136,7 @@ contract PrepareTeleportAaveV3 {
      *                           only the data of the Aave position you want to migrate
      */
     function _getAssetsToBorrowFromFLToRepayAaveDebt(AaveUserDataList memory _aaveUserDataList)
-        public
+        private
         pure
         returns (address[] memory assetsBorrowed, uint256[] memory amountsBorrowed, uint256[] memory interestRateModes)
     {

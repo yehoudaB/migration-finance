@@ -24,9 +24,10 @@ contract InteractWithTeleportAaveV3 is Script {
     }
 
     function teleport(TeleportAaveV3 _teleportAaveV3, PrepareTeleportAaveV3 _prepareTeleportAaveV3) public {
-        address destinationAddress = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
-        address sourceAddress = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
-
+        address sourceAddress = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
+        address destinationAddress = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
+        uint256 sourceAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 0);
+        uint256 destinationAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 1);
         (
             address[] memory assetsBorrowed,
             uint256[] memory amountsBorrowed,
@@ -34,8 +35,6 @@ contract InteractWithTeleportAaveV3 is Script {
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove
         ) = _prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(sourceAddress);
-        uint256 sourceAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 1);
-        uint256 destinationAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 0);
 
         vm.startBroadcast(destinationAddressPK);
 
