@@ -23,26 +23,29 @@ contract InteractWithTeleportAaveV3 is Script {
         teleport(teleportAaveV3, prepareTeleportAaveV3);
     }
 
+    uint256 destinationAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 0);
+    uint256 sourceAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 1);
+    address destinationAddress = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
+    address sourceAddress = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
+
     function teleport(TeleportAaveV3 _teleportAaveV3, PrepareTeleportAaveV3 _prepareTeleportAaveV3) public {
-        address destinationAddress = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
-        address sourceAddress = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
-        uint256 destinationAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 0);
-        uint256 sourceAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 1);
         (
-            address[] memory assetsBorrowed,
-            uint256[] memory amountsBorrowed,
+            address[] memory assetsUserBorrowed,
+            uint256[] memory amountsUserBorrowed,
             uint256[] memory interestRateModesForPositions,
             uint256[] memory interestRateModesForFL,
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove
         ) = _prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(sourceAddress);
 
-        vm.startBroadcast(destinationAddressPK);
-
         giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
-            assetsBorrowed, amountsBorrowed, interestRateModesForPositions, _teleportAaveV3, _prepareTeleportAaveV3
+            assetsUserBorrowed,
+            amountsUserBorrowed,
+            interestRateModesForPositions,
+            _teleportAaveV3,
+            _prepareTeleportAaveV3
         );
-        vm.stopBroadcast();
+
         vm.startBroadcast(sourceAddressPK);
         giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
             aTokenAssetsToMove, aTokenAmountsToMove, _teleportAaveV3
@@ -50,13 +53,14 @@ contract InteractWithTeleportAaveV3 is Script {
         _teleportAaveV3.moveAavePositionToAnotherWallet(
             sourceAddress,
             destinationAddress,
-            assetsBorrowed,
-            amountsBorrowed,
+            assetsUserBorrowed,
+            amountsUserBorrowed,
             interestRateModesForPositions,
             interestRateModesForFL,
             aTokenAssetsToMove,
             aTokenAmountsToMove
         );
+
         vm.stopBroadcast();
     }
 
@@ -75,17 +79,20 @@ contract InteractWithTeleportAaveV3 is Script {
         PrepareTeleportAaveV3 prepareTeleportAaveV3
     ) public {
         for (uint256 i = 0; i < _assetsBorrowed.length; i++) {
-            address debtToken;
+            uint256 amountToBorrow = _amountsBorrowed[i] + (_amountsBorrowed[i] * 2) / 100;
             if (_interestRateModesForPositions[i] == 1) {
                 // 1: stable mode debt
-                debtToken = prepareTeleportAaveV3.getStableDebtToken(_assetsBorrowed[i]);
+                address stableDebtToken = prepareTeleportAaveV3.getStableDebtToken(_assetsBorrowed[i]);
+                vm.startBroadcast(destinationAddressPK);
+                ICreditDelegationToken(stableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
+                vm.stopBroadcast();
             } else {
                 // 2: variable mode debt
-                debtToken = prepareTeleportAaveV3.getVariableDebtToken(_assetsBorrowed[i]);
+                address variableDebtToken = prepareTeleportAaveV3.getVariableDebtToken(_assetsBorrowed[i]);
+                vm.startBroadcast(destinationAddressPK);
+                ICreditDelegationToken(variableDebtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
+                vm.stopBroadcast();
             }
-            // amountBorrowed + fee (2%) // approximatively
-            uint256 amountToBorrow = _amountsBorrowed[i] + (_amountsBorrowed[i] * 2) / 100;
-            ICreditDelegationToken(debtToken).approveDelegation(address(teleportAaveV3), amountToBorrow);
         }
     }
 

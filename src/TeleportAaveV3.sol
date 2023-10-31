@@ -21,7 +21,7 @@ pragma solidity ^0.8.20;
 // private
 // internal & private view & pure functions
 // external & public view & pure functions
-import {console} from "forge-std/Console.sol";
+
 import {FlashLoanReceiverBase} from "@aave-v3-core/contracts/flashloan/base/FlashLoanReceiverBase.sol";
 import {IPoolAddressesProvider} from "@aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -74,16 +74,10 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
         address[] memory aTokenAssetsToMove,
         uint256[] memory aTokenAmountsToMove
     ) external {
-        bytes memory fromAndToAddressesEncodedAndATokensToMoveAndInterestRateModeForPositions =
+        bytes memory data =
             abi.encode(_from, _to, aTokenAssetsToMove, aTokenAmountsToMove, interestRateModesForPositions);
         _requestFlashLoan(
-            address(this),
-            assetsBorrowed,
-            amountsBorrowed,
-            interestRateModesForFL,
-            address(this),
-            fromAndToAddressesEncodedAndATokensToMoveAndInterestRateModeForPositions,
-            0
+            address(this), assetsBorrowed, amountsBorrowed, interestRateModesForFL, address(this), data, 0
         );
     }
 
@@ -122,9 +116,12 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
             /* borrow the debt to the POOL for the _to address 
             * (the _to address should have allowed the contract  to borrow on behalf of it)
             *    we borrow the amount + the premium (the premium is for paying the flashloan fee)
+            *  @notice IMPORTANT : the health factor of the _to address should be sufficent the premium fee otherwise the transaction will revert
+            *
             */
             POOL.borrow(tokenToBorrow, amountToBorrow + _premiums[i], interestRateModesForPositions[i], 0, _to);
-            IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow + _premiums[i]); // approve to repay to the FLASHLOAN
+            uint256 maxAllowance = type(uint256).max;
+            IERC20(tokenToBorrow).approve(address(POOL), maxAllowance); // approve to repay to the FLASHLOAN
         }
         return true;
     }

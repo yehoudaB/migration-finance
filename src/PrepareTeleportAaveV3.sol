@@ -43,8 +43,8 @@ contract PrepareTeleportAaveV3 {
         external
         view
         returns (
-            address[] memory assetsBorrowed,
-            uint256[] memory amountsBorrowed,
+            address[] memory assetsUserBorrowed,
+            uint256[] memory amountsUserBorrowed,
             uint256[] memory interestRateModesForPositions,
             uint256[] memory interestRateModesForFL,
             address[] memory aTokenAssetsToMove,
@@ -52,14 +52,14 @@ contract PrepareTeleportAaveV3 {
         )
     {
         AaveUserDataList memory sourceWalletAaveDataList = _getAaveUserDataForAllAssets(_user);
-        (assetsBorrowed, amountsBorrowed, interestRateModesForPositions, interestRateModesForFL) =
+        (assetsUserBorrowed, amountsUserBorrowed, interestRateModesForPositions, interestRateModesForFL) =
             _getAssetsToBorrowFromFLToRepayAaveDebt(sourceWalletAaveDataList);
 
         (aTokenAssetsToMove, aTokenAmountsToMove) = _getATokenAssetToMoveToDestinationWallet(_user);
 
         return (
-            assetsBorrowed,
-            amountsBorrowed,
+            assetsUserBorrowed,
+            amountsUserBorrowed,
             interestRateModesForPositions,
             interestRateModesForFL,
             aTokenAssetsToMove,
@@ -147,41 +147,44 @@ contract PrepareTeleportAaveV3 {
         private
         pure
         returns (
-            address[] memory assetsBorrowed,
-            uint256[] memory amountsBorrowed,
+            address[] memory assetsUserBorrowed,
+            uint256[] memory amountsUserBorrowed,
             uint256[] memory interestRateModesForPositions,
             uint256[] memory interestRateModesForFL
         )
     {
-        uint256 lengthOfassetsToBorrowArray = 0;
+        uint256 lengthOfAssetsToBorrowArray = 0;
 
         for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
-            if (
-                _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0
-                    || _aaveUserDataList.tokensAmountThatUserStableBorrowedFromAave[i] > 0
-            ) {
-                lengthOfassetsToBorrowArray++;
+            if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
+                lengthOfAssetsToBorrowArray++;
+            }
+            if (_aaveUserDataList.tokensAmountThatUserStableBorrowedFromAave[i] > 0) {
+                lengthOfAssetsToBorrowArray++;
             }
         }
-        assetsBorrowed = new address[](lengthOfassetsToBorrowArray);
-        amountsBorrowed = new uint256[](lengthOfassetsToBorrowArray);
-        interestRateModesForPositions = new uint256[](lengthOfassetsToBorrowArray);
-        interestRateModesForFL = new uint256[](lengthOfassetsToBorrowArray);
-        uint256 indexOfAssetToBorrow = 0;
+        assetsUserBorrowed = new address[](lengthOfAssetsToBorrowArray);
+        amountsUserBorrowed = new uint256[](lengthOfAssetsToBorrowArray);
+        interestRateModesForPositions = new uint256[](lengthOfAssetsToBorrowArray);
+        interestRateModesForFL = new uint256[](lengthOfAssetsToBorrowArray);
+        //assetToBorrowFromFL = new address[](lengthOfassetsToBorrowFromFLArray);
+        //amountsToBorrowFromFL = new uint256[](lengthOfassetsToBorrowFromFLArray);
+        uint256 indexOfAssetToBorrowForPositions = 0;
+
         for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
-            if (
-                _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0
-                    || _aaveUserDataList.tokensAmountThatUserStableBorrowedFromAave[i] > 0
-            ) {
-                assetsBorrowed[indexOfAssetToBorrow] = _aaveUserDataList.aaveReserveTokenList[i];
-                amountsBorrowed[indexOfAssetToBorrow] = _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i]
-                    > 0
-                    ? _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i]
-                    : _aaveUserDataList.tokensAmountThatUserStableBorrowedFromAave[i];
-                interestRateModesForPositions[indexOfAssetToBorrow] =
-                    _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0 ? 2 : 1;
-                interestRateModesForFL[indexOfAssetToBorrow] = 0;
-                indexOfAssetToBorrow++;
+            if (_aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i] > 0) {
+                assetsUserBorrowed[indexOfAssetToBorrowForPositions] = _aaveUserDataList.aaveReserveTokenList[i];
+                amountsUserBorrowed[indexOfAssetToBorrowForPositions] =
+                    _aaveUserDataList.tokensAmountsThatUserVariableBorrowedFromAave[i];
+                interestRateModesForPositions[indexOfAssetToBorrowForPositions] = 2; // 2: variable mode debt
+                indexOfAssetToBorrowForPositions++;
+            }
+            if (_aaveUserDataList.tokensAmountThatUserStableBorrowedFromAave[i] > 0) {
+                assetsUserBorrowed[indexOfAssetToBorrowForPositions] = _aaveUserDataList.aaveReserveTokenList[i];
+                amountsUserBorrowed[indexOfAssetToBorrowForPositions] =
+                    _aaveUserDataList.tokensAmountThatUserStableBorrowedFromAave[i];
+                interestRateModesForPositions[indexOfAssetToBorrowForPositions] = 1; // 1: stable mode debt
+                indexOfAssetToBorrowForPositions++;
             }
         }
     }

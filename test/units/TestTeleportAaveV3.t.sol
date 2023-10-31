@@ -37,6 +37,7 @@ contract MigrationFinanceTest is Test {
     address usdc = 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8;
     address eurs = 0x6d906e526a4e2Ca02097BA9d0caA3c382F52278E;
     address link = 0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5;
+    address dai = 0xFF34B3d4Aee8ddCd6F9AFFFB6Fe49bD371b8a357;
 
     function setUp() public {
         DeployTeleportFinance teleportFinanceDeployer = new DeployTeleportFinance();
@@ -87,14 +88,19 @@ contract MigrationFinanceTest is Test {
             uint256[] memory aTokenAmountsToMove
         ) = prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
         for (uint256 i = 0; i < assetsBorrowed.length; i++) {
+            console.log("----------BORROWED-----------------------------");
             console.log("assetsBorrowed", assetsBorrowed[i]);
             console.log("amountsBorrowed", amountsBorrowed[i]);
             console.log("interestRateModesForPositions", interestRateModesForPositions[i]);
-            console.log("interestRateModesForFL", interestRateModesForFL[i]);
+            console.log("--------------------------------------------");
         }
         for (uint256 i = 0; i < aTokenAssetsToMove.length; i++) {
+            console.log("----------ATOKEN-----------------------------");
             console.log("aTokenAssetsToMove", aTokenAssetsToMove[i]);
             console.log("aTokenAmountsToMove", aTokenAmountsToMove[i]);
+            uint256 allowance = IERC20(aTokenAssetsToMove[i]).allowance(USER_2, address(teleportAaveV3));
+            console.log("allowance", allowance);
+            console.log("--------------------------------------------");
         }
     }
 
