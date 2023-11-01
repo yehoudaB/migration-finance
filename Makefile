@@ -23,7 +23,7 @@ install :; forge install Cyfrin/foundry-devops@0.0.11 --no-commit && forge insta
 # Update Dependencies
 update:; forge update
 
-build:; forge build
+build:; forge build 
 
 test :; forge test --fork-url $(SEPOLIA_RPC_URL) -vvvv 
 
@@ -36,7 +36,7 @@ anvil :; anvil -m 'test test test test test test test test test test test junk' 
 NETWORK_ARGS :=  --rpc-url http://localhost:8545 --private-key $(DEFAULT_ANVIL_KEY) --broadcast 
 
 ifeq ($(findstring --network sepolia,$(ARGS)),--network sepolia)
-	NETWORK_ARGS := --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) -vvvv --ffi
+	NETWORK_ARGS := --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) -vvvv --ffi --via-ir
 endif
 
 deploy:
@@ -44,7 +44,7 @@ deploy:
 
 
 teleport:
-	@forge script script/InteractWithTeleportAaveV3.s.sol:InteractWithTeleportAaveV3 $(NETWORK_ARGS)
+	@forge script script/InteractWithTeleportAaveV3.s.sol:InteractWithTeleportAaveV3 $(NETWORK_ARGS) 
 
 
 # to pass network args add after make command  ARGS="--network sepolia"

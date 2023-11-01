@@ -20,7 +20,7 @@ then :
 make deploy
 ````
 
-But for testing you need to do this : 
+for testing from sepolia fork in one command you need to do this : 
 
 ```
  source .env 
@@ -52,6 +52,7 @@ forge create --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY src/MyContrac
 
 ## To verify a contract already deployed
 ```
-forge verify-contract --chain-id 11155111 --verifier etherscan --api-key $ETHERSCAN_API_KEY <contract-address> <contract-name>
+forge verify-contract --chain-id 11155111 --watch --verifier etherscan --api-key $ETHERSCAN_API_KEY <contract-address> <contract-name>
 ```
+
 

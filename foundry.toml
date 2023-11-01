@@ -3,7 +3,7 @@ src = "src"
 out = "out"
 libs = ["lib"]
 gas_reports = ["MyContract", "MyContractFactory"]
-
+via_ir = true
 remappings = [
     "@aave-v3-core/contracts=lib/aave-v3-core/contracts",
     "@aave/core-v3/contracts=lib/aave-v3-core/contracts",

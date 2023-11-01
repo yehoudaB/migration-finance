@@ -15,8 +15,8 @@ import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 
 contract InteractWithTeleportAaveV3 is Script {
     function run() external {
-        address teleportAaveV3Address = 0x5d6085935AD04FBACC9D025Ba989bEAE91f94090;
-        address prepareTeleportAaveV3Address = 0xe8f617fbc78A6699dEa376fCE4695571044233ba;
+        address teleportAaveV3Address = 0x557150d167cA1259856CF1e4E327108B16543098; // update at each deployment
+        address prepareTeleportAaveV3Address = 0xf7Ac1a146597e95E0C33e669Eb11937247a9431a; // update at each deployment
 
         PrepareTeleportAaveV3 prepareTeleportAaveV3 = PrepareTeleportAaveV3(prepareTeleportAaveV3Address);
         TeleportAaveV3 teleportAaveV3 = TeleportAaveV3(teleportAaveV3Address);
