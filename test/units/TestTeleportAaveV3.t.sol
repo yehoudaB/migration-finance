@@ -141,4 +141,13 @@ contract MigrationFinanceTest is Test {
     function testMoveAavePositionsWithInteractions() public {
         interactWithTeleportAaveV3.teleport(teleportAaveV3, prepareTeleportAaveV3);
     }
+
+    function testSetAllTokenReserveAsCollateral() public {
+        vm.startBroadcast(USER_1);
+        address[] memory aaveReserveTokenList = prepareTeleportAaveV3.getAaveMarketReserveTokenList();
+        for (uint256 j = 0; j < aaveReserveTokenList.length; j++) {
+            prepareTeleportAaveV3.updateReserveDataCollateralStatus(aaveReserveTokenList[j], true);
+        }
+        vm.stopBroadcast();
+    }
 }

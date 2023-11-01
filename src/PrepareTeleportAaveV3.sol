@@ -74,7 +74,7 @@ contract PrepareTeleportAaveV3 {
     */
 
     function _getAaveUserDataForAllAssets(address _user) private view returns (AaveUserDataList memory) {
-        address[] memory aaveReserveTokenList = _getAaveMarketReserveTokenList();
+        address[] memory aaveReserveTokenList = getAaveMarketReserveTokenList();
         uint256[] memory tokensAmountsThatUserDepositedInAave = new uint256[](aaveReserveTokenList.length);
         bool[] memory areTokensCollateralThatUserDepositedInAave = new bool[](aaveReserveTokenList.length);
         uint256[] memory tokensAmountThatUserStableBorrowedFromAave = new uint256[](aaveReserveTokenList.length);
@@ -199,7 +199,7 @@ contract PrepareTeleportAaveV3 {
         view
         returns (address[] memory, uint256[] memory)
     {
-        address[] memory reserveTokensList = _getAaveMarketReserveTokenList();
+        address[] memory reserveTokensList = getAaveMarketReserveTokenList();
         uint256 lengthOfAssetToMoveArray;
         for (uint256 i = 0; i < reserveTokensList.length; i++) {
             address aToken = _getAToken(reserveTokensList[i]);
@@ -222,6 +222,10 @@ contract PrepareTeleportAaveV3 {
         return (aTokenAssetsToMove, aTokenAmountsToMove);
     }
 
+    function updateReserveDataCollateralStatus(address _tokenReserve, bool _newCollateralStatus) public {
+        iPool.setUserUseReserveAsCollateral(_tokenReserve, _newCollateralStatus);
+    }
+
     function getVariableDebtToken(address _tokenReserve) public view returns (address) {
         return iPool.getReserveData(_tokenReserve).variableDebtTokenAddress;
     }
@@ -234,7 +238,7 @@ contract PrepareTeleportAaveV3 {
         return iPoolDataProvider.getAllATokens();
     }
 
-    function _getAaveMarketReserveTokenList() private view returns (address[] memory) {
+    function getAaveMarketReserveTokenList() public view returns (address[] memory) {
         return iPool.getReservesList();
     }
 
