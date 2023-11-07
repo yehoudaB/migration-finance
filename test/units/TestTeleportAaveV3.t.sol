@@ -64,12 +64,12 @@ contract MigrationFinanceTest is Test {
     }
     // private function
 
-    function testGetATokenAssetToMoveToDestinationWallet() public view {
+    /*  function testGetATokenAssetToMoveToDestinationWallet() public view {
         (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
             prepareTeleportAaveV3._getATokenAssetToMoveToDestinationWallet(USER_1);
         console.log("aTokenAssetsToMove", aTokenAssetsToMove.length);
         console.log("aTokenAmountsToMove", aTokenAmountsToMove.length);
-    }
+    } */
 
     function testSetUserUseReserveAsCollateral() public {
         vm.startBroadcast(USER_1);

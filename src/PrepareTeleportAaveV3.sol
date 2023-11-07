@@ -51,7 +51,7 @@ contract PrepareTeleportAaveV3 {
             uint256[] memory aTokenAmountsToMove
         )
     {
-        AaveUserDataList memory sourceWalletAaveDataList = _getAaveUserDataForAllAssets(_user);
+        AaveUserDataList memory sourceWalletAaveDataList = getAaveUserDataForAllAssets(_user);
         (assetsUserBorrowed, amountsUserBorrowed, interestRateModesForPositions, interestRateModesForFL) =
             _getAssetsToBorrowFromFLToRepayAaveDebt(sourceWalletAaveDataList);
 
@@ -70,10 +70,11 @@ contract PrepareTeleportAaveV3 {
     /*
     * @notice this function returns the postion (deposit, borrow) of an user for in the Aave market for all assets
     * @param _user the address of the user 
+    * @dev this function is public because it is used by the frontend to display the Aave position of an user
     * 
     */
 
-    function _getAaveUserDataForAllAssets(address _user) private view returns (AaveUserDataList memory) {
+    function getAaveUserDataForAllAssets(address _user) public view returns (AaveUserDataList memory) {
         address[] memory aaveReserveTokenList = getAaveMarketReserveTokenList();
         uint256[] memory tokensAmountsThatUserDepositedInAave = new uint256[](aaveReserveTokenList.length);
         bool[] memory areTokensCollateralThatUserDepositedInAave = new bool[](aaveReserveTokenList.length);
@@ -195,7 +196,7 @@ contract PrepareTeleportAaveV3 {
     * @dev this function is used by teleportAaveV3PositionsBetweenWallets to prepare the data to send to the TeleportAaveV3 contract
     */
     function _getATokenAssetToMoveToDestinationWallet(address _from)
-        public
+        private
         view
         returns (address[] memory, uint256[] memory)
     {
