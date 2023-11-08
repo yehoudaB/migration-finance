@@ -47,7 +47,7 @@ source .env
 ````
 then
 ```
-forge create --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY src/MyContract.sol:MyContract -broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY 
+forge create --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY src/MyContract.sol:MyContract  --verify --etherscan-api-key $ETHERSCAN_API_KEY 
 ```
 
 ## To verify a contract already deployed

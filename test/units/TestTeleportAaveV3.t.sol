@@ -24,6 +24,7 @@ contract MigrationFinanceTest is Test {
 
     address public USER_1 = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev (same as .env private key)
     address public USER_2 = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 5 metamask dev
+    address public USER_6 = 0xb34AEFdA3a46De36eBa562B297a87De107C9c596;
     TeleportAaveV3 public teleportAaveV3;
     HelperConfig helperConfig;
     PrepareTeleportAaveV3 prepareTeleportAaveV3;
@@ -86,7 +87,7 @@ contract MigrationFinanceTest is Test {
             uint256[] memory interestRateModesForFL,
             address[] memory aTokenAssetsToMove,
             uint256[] memory aTokenAmountsToMove
-        ) = prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_2);
+        ) = prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_6);
         for (uint256 i = 0; i < assetsBorrowed.length; i++) {
             console.log("----------BORROWED-----------------------------");
             console.log("assetsBorrowed", assetsBorrowed[i]);
@@ -98,44 +99,10 @@ contract MigrationFinanceTest is Test {
             console.log("----------ATOKEN-----------------------------");
             console.log("aTokenAssetsToMove", aTokenAssetsToMove[i]);
             console.log("aTokenAmountsToMove", aTokenAmountsToMove[i]);
-            uint256 allowance = IERC20(aTokenAssetsToMove[i]).allowance(USER_2, address(teleportAaveV3));
+            uint256 allowance = IERC20(aTokenAssetsToMove[i]).allowance(USER_6, address(teleportAaveV3));
             console.log("allowance", allowance);
             console.log("--------------------------------------------");
         }
-    }
-
-    function testMoveAavePositions() public {
-        (
-            address[] memory assetsBorrowed,
-            uint256[] memory amountsBorrowed,
-            uint256[] memory interestRateModesForPositions,
-            uint256[] memory interestRateModesForFL,
-            address[] memory aTokenAssetsToMove,
-            uint256[] memory aTokenAmountsToMove
-        ) = prepareTeleportAaveV3.getAllAaveV3PositionsToMoveViaTeleportAaveV3(USER_1);
-
-        vm.startBroadcast(USER_2);
-        interactWithTeleportAaveV3.giveAllowanceToTeleportToBorrowOnBehalfOfDestinationWallet(
-            assetsBorrowed, amountsBorrowed, interestRateModesForPositions, teleportAaveV3, prepareTeleportAaveV3
-        );
-        vm.stopBroadcast();
-
-        vm.startBroadcast(USER_1);
-        interactWithTeleportAaveV3.giveAllowanceToTeleportToMoveATokenOnBehalfOfSourceWallet(
-            aTokenAssetsToMove, aTokenAmountsToMove, teleportAaveV3
-        );
-
-        teleportAaveV3.moveAavePositionToAnotherWallet(
-            USER_1,
-            USER_2,
-            assetsBorrowed,
-            amountsBorrowed,
-            interestRateModesForPositions,
-            interestRateModesForFL,
-            aTokenAssetsToMove,
-            aTokenAmountsToMove
-        );
-        vm.stopBroadcast();
     }
 
     function testMoveAavePositionsWithInteractions() public {
