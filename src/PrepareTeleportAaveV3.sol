@@ -168,8 +168,6 @@ contract PrepareTeleportAaveV3 {
         amountsUserBorrowed = new uint256[](lengthOfAssetsToBorrowArray);
         interestRateModesForPositions = new uint256[](lengthOfAssetsToBorrowArray);
         interestRateModesForFL = new uint256[](lengthOfAssetsToBorrowArray);
-        //assetToBorrowFromFL = new address[](lengthOfassetsToBorrowFromFLArray);
-        //amountsToBorrowFromFL = new uint256[](lengthOfassetsToBorrowFromFLArray);
         uint256 indexOfAssetToBorrowForPositions = 0;
 
         for (uint256 i = 0; i < _aaveUserDataList.aaveReserveTokenList.length; i++) {
