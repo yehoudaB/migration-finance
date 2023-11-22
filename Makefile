@@ -41,8 +41,7 @@ endif
 
 deploy:
 	@forge script script/DeployTeleportFinance.s.sol:DeployTeleportFinance $(NETWORK_ARGS)
-
-
+	
 teleport:
 	@forge script script/InteractWithTeleportAaveV3.s.sol:InteractWithTeleportAaveV3 $(NETWORK_ARGS) 
 

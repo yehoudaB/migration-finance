@@ -35,10 +35,22 @@ import {ICreditDelegationToken} from "@aave-v3-core/contracts/interfaces/ICredit
  * @dev Implements Aave V3 Pool and Flashloan receiver
  */
 contract TeleportAaveV3 is FlashLoanReceiverBase {
-    IPoolDataProvider public poolDataProvider;
+    error TeleportAaveV3__OnlyAdminCanCallThisFunction();
 
-    constructor(address _poolAddressProvider) FlashLoanReceiverBase(IPoolAddressesProvider(_poolAddressProvider)) {
+    IPoolDataProvider public poolDataProvider;
+    address private admin;
+    uint16 private constant REFERRAL_CODE = 0;
+
+    /**
+     * Events
+     */
+    event TeleportAaveV3__transferSuccess(address indexed _from, address indexed _to);
+
+    constructor(address _poolAddressProvider, address _admin)
+        FlashLoanReceiverBase(IPoolAddressesProvider(_poolAddressProvider))
+    {
         poolDataProvider = IPoolDataProvider(_poolAddressProvider);
+        admin = _admin;
     }
 
     function _requestFlashLoan(
@@ -77,7 +89,7 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
         bytes memory data =
             abi.encode(_from, _to, aTokenAssetsToMove, aTokenAmountsToMove, interestRateModesForPositions);
         _requestFlashLoan(
-            address(this), assetsBorrowed, amountsBorrowed, interestRateModesForFL, address(this), data, 0
+            address(this), assetsBorrowed, amountsBorrowed, interestRateModesForFL, address(this), data, REFERRAL_CODE
         );
     }
 
@@ -104,6 +116,7 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
         for (uint256 i = 0; i < _assets.length; i++) {
             address tokenToBorrow = _assets[i];
             uint256 amountToBorrow = _amounts[i];
+
             IERC20(tokenToBorrow).approve(address(POOL), amountToBorrow); // approve to repay to the POOL (regular debt)
             POOL.repay(tokenToBorrow, amountToBorrow, interestRateModesForPositions[i], _from); // repay the debt to the POOL for the _from address
         }
@@ -119,10 +132,22 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
             *  @notice IMPORTANT : the health factor of the _to address should be sufficent the premium fee otherwise the transaction will revert
             *
             */
-            POOL.borrow(tokenToBorrow, amountToBorrow + _premiums[i], interestRateModesForPositions[i], 0, _to);
+            POOL.borrow(
+                tokenToBorrow, amountToBorrow + _premiums[i], interestRateModesForPositions[i], REFERRAL_CODE, _to
+            );
             uint256 maxAllowance = type(uint256).max;
             IERC20(tokenToBorrow).approve(address(POOL), maxAllowance); // approve to repay to the FLASHLOAN
         }
+        emit TeleportAaveV3__transferSuccess(_from, _to);
         return true;
+    }
+
+    function withdrawERC20(address _tokenAddress) external {
+        IERC20(_tokenAddress).transfer(admin, IERC20(_tokenAddress).balanceOf(address(this)));
+    }
+
+    function changeAdmin(address _newAdmin) external {
+        if (msg.sender != admin) revert TeleportAaveV3__OnlyAdminCanCallThisFunction();
+        admin = _newAdmin;
     }
 }
