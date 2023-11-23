@@ -22,7 +22,7 @@ contract DeployTeleportFinance is Script {
 
         vm.startBroadcast(deployerKey);
         TeleportAaveV3 teleportAaveV3 =
-            new TeleportAaveV3(address(iPoolAddressProvider), 0xCf079C136Bd1BE894C610BDeC57eF4a48B7F6bAD);
+            new TeleportAaveV3(address(iPoolAddressProvider), payable(0xCf079C136Bd1BE894C610BDeC57eF4a48B7F6bAD));
 
         PrepareTeleportAaveV3 prepareTeleportAaveV3 =
             new PrepareTeleportAaveV3(iPoolDataProvider, iPool, teleportAaveV3);

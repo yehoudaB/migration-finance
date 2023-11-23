@@ -38,7 +38,7 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
     error TeleportAaveV3__OnlyAdminCanCallThisFunction();
 
     IPoolDataProvider public poolDataProvider;
-    address private admin;
+    address payable private admin;
     uint16 private constant REFERRAL_CODE = 0;
 
     /**
@@ -46,7 +46,7 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
      */
     event TeleportAaveV3__transferSuccess(address indexed _from, address indexed _to);
 
-    constructor(address _poolAddressProvider, address _admin)
+    constructor(address _poolAddressProvider, address payable _admin)
         FlashLoanReceiverBase(IPoolAddressesProvider(_poolAddressProvider))
     {
         poolDataProvider = IPoolDataProvider(_poolAddressProvider);
@@ -145,9 +145,18 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
     function withdrawERC20(address _tokenAddress) external {
         IERC20(_tokenAddress).transfer(admin, IERC20(_tokenAddress).balanceOf(address(this)));
     }
+    // withdraw all ETH from the contract
 
-    function changeAdmin(address _newAdmin) external {
+    function withdrawETH() external {
+        admin.transfer(address(this).balance);
+    }
+
+    function changeAdmin(address payable _newAdmin) external {
         if (msg.sender != admin) revert TeleportAaveV3__OnlyAdminCanCallThisFunction();
         admin = _newAdmin;
+    }
+
+    function getAdmin() external view returns (address payable) {
+        return admin;
     }
 }
