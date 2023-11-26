@@ -135,19 +135,4 @@ contract MigrationFinanceTest is Test {
         assert(IERC20(usdc).balanceOf(address(teleportAaveV3)) == 0);
         assert(IERC20(usdc).balanceOf(admin) == adminBalanceUsdcBefore + 1000000);
     }
-
-    function testWithdrawETH() public {
-        address payable admin = teleportAaveV3.getAdmin();
-        uint256 adminBalanceBefore = address(admin).balance;
-        console.log("adminBalanceBefore", adminBalanceBefore);
-        address payable teleportAaveV3Address = payable(address(teleportAaveV3));
-        vm.deal(teleportAaveV3Address, 1000000);
-        vm.startBroadcast();
-
-        // send usdc to teleportAaveV3
-        teleportAaveV3.withdrawETH();
-        vm.stopBroadcast();
-        console.log("adminBalanceAfter", address(admin).balance);
-        assert(address(admin).balance == adminBalanceBefore + 1000000);
-    }
 }

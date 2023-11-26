@@ -145,11 +145,6 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
     function withdrawERC20(address _tokenAddress) external {
         IERC20(_tokenAddress).transfer(admin, IERC20(_tokenAddress).balanceOf(address(this)));
     }
-    // withdraw all ETH from the contract
-
-    function withdrawETH() external {
-        admin.transfer(address(this).balance);
-    }
 
     function changeAdmin(address payable _newAdmin) external {
         if (msg.sender != admin) revert TeleportAaveV3__OnlyAdminCanCallThisFunction();
