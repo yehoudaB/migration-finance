@@ -47,34 +47,11 @@ contract MigrationFinanceTest is Test {
         interactWithTeleportAaveV3 = new InteractWithTeleportAaveV3();
     }
 
-    function testBorrowOnBehalf() public {
-        uint256 amount = 0.00063434896262961 ether;
-
-        vm.startBroadcast(USER_2);
-        IERC20(link).approve(address(teleportAaveV3), amount);
-        IERC20(link).approve(USER_1, amount);
-        ICreditDelegationToken(0x34a4d932E722b9dFb492B9D8131127690CE2430B).approveDelegation(
-            address(teleportAaveV3), amount
-        );
-        ICreditDelegationToken(0x34a4d932E722b9dFb492B9D8131127690CE2430B).approveDelegation(USER_1, amount);
-        vm.startBroadcast();
-
-        vm.startBroadcast();
-        iPool.borrow(link, amount, 2, 0, USER_2);
-        vm.stopBroadcast();
-    }
-    // private function
-
-    /*  function testGetATokenAssetToMoveToDestinationWallet() public view {
-        (address[] memory aTokenAssetsToMove, uint256[] memory aTokenAmountsToMove) =
-            prepareTeleportAaveV3._getATokenAssetToMoveToDestinationWallet(USER_1);
-        console.log("aTokenAssetsToMove", aTokenAssetsToMove.length);
-        console.log("aTokenAmountsToMove", aTokenAmountsToMove.length);
-    } */
-
+    /*
+    * @notice the user must have deposited this asset in the pool before calling this function
+    */
     function testSetUserUseReserveAsCollateral() public {
         vm.startBroadcast(USER_1);
-        // the user must have deposited this asset in the pool before calling this function
         iPool.setUserUseReserveAsCollateral(usdc, true); // usdt is not permitted as collateral
         vm.stopBroadcast();
     }
@@ -106,19 +83,53 @@ contract MigrationFinanceTest is Test {
     }
 
     function testMoveAavePositionsWithInteractions() public {
+        address sourceAddress = interactWithTeleportAaveV3.sourceAddress();
+        iPool.getUserAccountData(sourceAddress);
+        (
+            uint256 totalCollateralBaseBeforeSource,
+            uint256 totalDebtBaseBeforeSource,
+            uint256 availableBorrowsBaseBeforeSource,
+            uint256 currentLiquidationThresholdBeforeSource,
+            uint256 ltvBeforeSource,
+            uint256 healthFactorBeforeSource
+        ) = iPool.getUserAccountData(sourceAddress);
+        console.log("healthFactorBeforeSource", healthFactorBeforeSource);
+        console.log("totalCollateralBaseBeforeSource", totalCollateralBaseBeforeSource);
+        address destinationAddress = interactWithTeleportAaveV3.destinationAddress();
+        (
+            uint256 totalCollateralBaseBeforeDestination,
+            uint256 totalDebtBaseBeforeDestination,
+            uint256 availableBorrowsBaseBeforeDestination,
+            uint256 currentLiquidationThresholdBeforeDestination,
+            uint256 ltvBeforeDestination,
+            uint256 healthFactorBeforeDestination
+        ) = iPool.getUserAccountData(sourceAddress);
+        iPool.getUserAccountData(destinationAddress);
         interactWithTeleportAaveV3.teleport(teleportAaveV3, prepareTeleportAaveV3);
+        (
+            uint256 totalCollateralBaseAfterDestination,
+            uint256 totalDebtBaseAfterDestination,
+            uint256 availableBorrowsBaseAfterDestination,
+            uint256 currentLiquidationThresholdAfterDestination,
+            uint256 ltvAfterDestination,
+            uint256 healthFactorAfterDestination
+        ) = iPool.getUserAccountData(destinationAddress);
+        console.log("healthFactorBeforDestination", healthFactorBeforeDestination);
+        console.log("healthFactorAfterDestination", healthFactorAfterDestination);
+        assert(totalCollateralBaseAfterDestination > totalCollateralBaseBeforeDestination);
+        assert(totalDebtBaseAfterDestination > totalDebtBaseBeforeDestination);
+        assert(availableBorrowsBaseAfterDestination > availableBorrowsBaseBeforeDestination);
+        assert(currentLiquidationThresholdAfterDestination > currentLiquidationThresholdBeforeDestination);
+        assert(ltvAfterDestination > ltvBeforeDestination);
+
+        // check that the user has no more debt
+        (,,,,, uint256 healthFactor) = iPool.getUserAccountData(sourceAddress);
+        assert(healthFactor == type(uint256).max);
     }
 
-    function testSetAllTokenReserveAsCollateral() public {
-        vm.startBroadcast(USER_1);
-        address[] memory aaveReserveTokenList = prepareTeleportAaveV3.getAaveMarketReserveTokenList();
-        for (uint256 j = 0; j < aaveReserveTokenList.length; j++) {
-            prepareTeleportAaveV3.updateReserveDataCollateralStatus(aaveReserveTokenList[j], true);
-        }
-        vm.stopBroadcast();
-    }
-
-    // the USER_2 must have some usdc in his wallet
+    /*
+    * @notice the USER_2 must have some usdc in his wallet
+    */
     function testWithdrawERC20() public {
         address payable admin = teleportAaveV3.getAdmin();
         uint256 adminBalanceUsdcBefore = IERC20(usdc).balanceOf(teleportAaveV3.getAdmin());

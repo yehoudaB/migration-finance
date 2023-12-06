@@ -25,8 +25,8 @@ contract InteractWithTeleportAaveV3 is Script {
 
     uint256 sourceAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 1);
     uint256 destinationAddressPK = vm.deriveKey(vm.envString("MNEMONIC"), 0);
-    address sourceAddress = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 2 metamask dev (same as .env private key)
-    address destinationAddress = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev
+    address public sourceAddress = 0xC5e0B6E472dDE70eCEfFa4c568Bd52f2A7a1632A; // account 2 metamask dev (same as .env private key)
+    address public destinationAddress = 0x3e122A3dB43d225DD5BFFD929AD4176ce69117E0; // account 1 metamask dev
 
     function teleport(TeleportAaveV3 _teleportAaveV3, PrepareTeleportAaveV3 _prepareTeleportAaveV3) public {
         (
