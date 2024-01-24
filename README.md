@@ -68,3 +68,12 @@ forge verify-contract --chain-id 137 --watch --verifier etherscan --api-key $POL
 ```
 
 
+
+
+
+
+forge verify-contract --chain-id 1 --watch --verifier etherscan --api-key $ETHERSCAN_API_KEY 0x936ee132A0A00c374Ac03dd71eB55a7C02b3CFFe  TeleportAaveV3   --constructor-args $(cast abi-encode "constructor(address,address)" 0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e 0x823Be23F5a90bb629D30Bb0ecc8777b4c15b6F17)    
+
+
+
+forge verify-contract --chain-id 8453 --watch --verifier etherscan --api-key $BASESCAN_API_KEY 0x936ee132A0A00c374Ac03dd71eB55a7C02b3CFFe  PrepareTeleportAaveV3   --constructor-args $(cast abi-encode "constructor(address,address,address)"  0x2A0979257105834789bC6b9E1B00446DFbA8dFBa 0x8F44Fd754285aa6A2b8B9B97739B79746e0475a7  0x15b9551Eff0920F13d9d57505f071aab8c3A1Cc8)   

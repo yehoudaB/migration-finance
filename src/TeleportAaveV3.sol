@@ -37,7 +37,7 @@ import {ICreditDelegationToken} from "@aave-v3-core/contracts/interfaces/ICredit
 contract TeleportAaveV3 is FlashLoanReceiverBase {
     error TeleportAaveV3__OnlyAdminCanCallThisFunction();
 
-    IPoolDataProvider public poolDataProvider;
+    IPoolDataProvider public immutable poolDataProvider;
     address payable private admin;
     uint16 private constant REFERRAL_CODE = 0;
 
@@ -153,5 +153,9 @@ contract TeleportAaveV3 is FlashLoanReceiverBase {
 
     function getAdmin() external view returns (address payable) {
         return admin;
+    }
+
+    function withdraw() public {
+        admin.transfer(address(this).balance);
     }
 }
